@@ -6,9 +6,10 @@
   "type": "module",
   "packageManager": "pnpm@12.11.2",
   "scripts": {
+    "postinstall": "pnpm --filter @polybridge/contracts build",
     "dev": "pnpm --filter \"@polybridge/*\" --parallel dev",
     "build": "pnpm --filter \"@polybridge/*\" build",
-    "typecheck": "pnpm --filter \"@polybridge/*\" typecheck",
+    "typecheck": "pnpm --filter @polybridge/contracts build && pnpm --filter \"@polybridge/*\" typecheck",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "test": "pnpm --filter \"@polybridge/*\" test",

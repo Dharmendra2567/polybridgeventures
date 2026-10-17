@@ -43,6 +43,9 @@ jobs:
       - name: Install Dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Build Shared Contracts
+        run: pnpm --filter @polybridge/contracts build
+
       - name: Format Check
         run: pnpm run format:check
 
