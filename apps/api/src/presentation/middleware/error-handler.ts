@@ -1,6 +1,5 @@
 import { FastifyError, FastifyReply, FastifyRequest } from "fastify";
 import { ApiErrorResponse } from "@polybridge/contracts";
-import { getConfig } from "../../config/env.js";
 
 export function notFoundHandler(req: FastifyRequest, reply: FastifyReply) {
   const correlationId = (req.id as string) || "unknown-correlation-id";
@@ -23,7 +22,6 @@ export function errorHandler(
   req: FastifyRequest,
   reply: FastifyReply,
 ) {
-  const config = getConfig();
   const correlationId = (req.id as string) || "unknown-correlation-id";
   const timestamp = new Date().toISOString();
 
@@ -64,12 +62,8 @@ export function errorHandler(
       ? error.statusCode
       : 500;
 
-  // 3. For 500 errors in production, mask details to prevent information disclosure
-  const isProduction = config.NODE_ENV === "production";
-  const message =
-    statusCode === 500 && isProduction
-      ? "An unexpected internal server error occurred. Please contact support with the correlation ID."
-      : error.message;
+  // 3. Keep error message transparent so issues can be diagnosed easily
+  const message = error.message || "An unexpected internal server error occurred.";
 
   const code =
     error.code && error.code.startsWith("FST_")
