@@ -459,7 +459,7 @@ export const FxMarketsModule: React.FC = () => {
         const err = await res.json();
         notify(err.error || "Failed to update rate", "error");
       }
-    } catch (err) {
+    } catch {
       notify("Network error updating rate", "error");
     }
   };
@@ -515,7 +515,7 @@ export const FxMarketsModule: React.FC = () => {
         const err = await res.json();
         notify(err.error || "Failed to add export market", "error");
       }
-    } catch (err) {
+    } catch {
       notify("Network error adding market", "error");
     } finally {
       setIsSubmittingNew(false);
@@ -568,7 +568,7 @@ export const FxMarketsModule: React.FC = () => {
         const err = await res.json();
         notify(err.error || "Failed to save pair override", "error");
       }
-    } catch (err) {
+    } catch {
       notify("Network error setting pair rate", "error");
     } finally {
       setIsSubmittingPair(false);

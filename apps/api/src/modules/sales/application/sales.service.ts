@@ -649,8 +649,8 @@ export class SalesService {
               totalAmountUsd: Number(totalAmtUsd.toFixed(2)),
               deliveryTerm: "CIF Destination Port",
               destinationPort:
-                (o.shippingAddress as Record<string, any>)?.port ||
-                "Port of Destination",
+                ((o.shippingAddress as Record<string, unknown>)
+                  ?.port as string) || "Port of Destination",
               createdAt: o.createdAt.toISOString().split("T")[0] ?? "",
               invoiceId: inv?.id,
               invoiceNumber: inv?.invoiceNumber,

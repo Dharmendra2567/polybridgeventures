@@ -38,11 +38,11 @@ export function createDocumentsController(prisma: PrismaClient) {
               count: documents.length,
               documents,
             });
-          } catch (err: any) {
+          } catch (err: unknown) {
             req.log.error({ err }, "[Documents] Upload failed");
-            return reply
-              .status(400)
-              .send({ error: err.message || "File upload failed" });
+            return reply.status(400).send({
+              error: (err as Error).message || "File upload failed",
+            });
           }
         },
       );
@@ -64,9 +64,9 @@ export function createDocumentsController(prisma: PrismaClient) {
           try {
             const documents = await service.getDocuments(req.query || {});
             return reply.send({ documents });
-          } catch (err: any) {
+          } catch (err: unknown) {
             req.log.error({ err }, "[Documents] Failed to fetch documents");
-            return reply.status(500).send({ error: err.message });
+            return reply.status(500).send({ error: (err as Error).message });
           }
         },
       );
@@ -84,8 +84,8 @@ export function createDocumentsController(prisma: PrismaClient) {
               return reply.status(404).send({ error: "Document not found" });
             }
             return reply.send({ document: doc });
-          } catch (err: any) {
-            return reply.status(500).send({ error: err.message });
+          } catch (err: unknown) {
+            return reply.status(500).send({ error: (err as Error).message });
           }
         },
       );
@@ -122,11 +122,11 @@ export function createDocumentsController(prisma: PrismaClient) {
             }
 
             return reply.send(stream);
-          } catch (err: any) {
+          } catch (err: unknown) {
             req.log.error({ err }, "[Documents] Streaming failed");
-            return reply
-              .status(404)
-              .send({ error: err.message || "Failed to stream document" });
+            return reply.status(404).send({
+              error: (err as Error).message || "Failed to stream document",
+            });
           }
         },
       );
@@ -144,8 +144,8 @@ export function createDocumentsController(prisma: PrismaClient) {
               return reply.status(404).send({ error: "Document not found" });
             }
             return reply.send({ success: true, id: req.params.id });
-          } catch (err: any) {
-            return reply.status(500).send({ error: err.message });
+          } catch (err: unknown) {
+            return reply.status(500).send({ error: (err as Error).message });
           }
         },
       );

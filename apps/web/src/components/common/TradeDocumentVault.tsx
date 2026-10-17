@@ -193,8 +193,8 @@ export const TradeDocumentVault: React.FC<TradeDocumentVaultProps> = ({
       // Refresh documents list
       await fetchDocuments();
       setTimeout(() => setSuccessMsg(null), 4000);
-    } catch (err: any) {
-      setErrorMsg(err.message || "An error occurred during upload.");
+    } catch (err: unknown) {
+      setErrorMsg((err as Error).message || "An error occurred during upload.");
     } finally {
       setIsUploading(false);
     }

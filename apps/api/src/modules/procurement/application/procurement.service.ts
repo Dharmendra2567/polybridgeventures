@@ -23,17 +23,19 @@ export class ProcurementService {
           });
 
           const suppliers: SupplierItem[] = dbSuppliers.map((s) => {
-            const meta = (s.address as Record<string, any>) || {};
+            const meta = (s.address as Record<string, unknown>) || {};
             return {
               id: s.id,
               code: s.supplierCode,
               name: s.name,
-              location: meta.city || s.state || "Gujarat",
+              location: (meta.city as string) || s.state || "Gujarat",
               state: s.state || "Gujarat",
               commodities:
-                meta.commodities || "Spices, Agro Products & Packaging",
+                (meta.commodities as string) ||
+                "Spices, Agro Products & Packaging",
               paymentTerms:
-                meta.paymentTerms || `${s.paymentTermsDays} Days Net`,
+                (meta.paymentTerms as string) ||
+                `${s.paymentTermsDays} Days Net`,
               rating: Number(meta.rating) || 4.8,
             };
           });
@@ -152,16 +154,17 @@ export class ProcurementService {
             },
           });
 
-          const meta = (updated.address as Record<string, any>) || {};
+          const meta = (updated.address as Record<string, unknown>) || {};
           const mapped: SupplierItem = {
             id: updated.id,
             code: updated.supplierCode,
             name: updated.name,
-            location: meta.city || updated.state || "Gujarat",
+            location: (meta.city as string) || updated.state || "Gujarat",
             state: updated.state || "Gujarat",
-            commodities: meta.commodities || "Spices & Agro",
+            commodities: (meta.commodities as string) || "Spices & Agro",
             paymentTerms:
-              meta.paymentTerms || `${updated.paymentTermsDays} Days Net`,
+              (meta.paymentTerms as string) ||
+              `${updated.paymentTermsDays} Days Net`,
             rating: Number(meta.rating) || 4.8,
           };
 

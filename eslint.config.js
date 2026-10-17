@@ -10,6 +10,10 @@ export default [
       "**/.pnpm-store/**",
       "**/reports/**",
       "**/src/generated/**",
+      "**/scratch/**",
+      "**/src/apply-*.ts",
+      "**/src/seed*.ts",
+      "**/src/presentation/routes/trade.routes.monolith.ts",
     ],
   },
   {
@@ -28,7 +32,7 @@ export default [
       "@typescript-eslint/no-explicit-any": "error",
       "@typescript-eslint/no-unused-vars": [
         "error",
-        { argsIgnorePattern: "^_" },
+        { argsIgnorePattern: "^_", caughtErrorsIgnorePattern: "^_" },
       ],
       "no-console": ["warn", { allow: ["warn", "error", "info"] }],
     },

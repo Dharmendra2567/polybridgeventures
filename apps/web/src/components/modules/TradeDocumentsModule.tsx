@@ -154,8 +154,10 @@ export const TradeDocumentsModule: React.FC = () => {
       setUploadEntityRef("");
       setShowUploadModal(false);
       await fetchAllDocuments();
-    } catch (err: any) {
-      setUploadError(err.message || "Error occurred while uploading.");
+    } catch (err: unknown) {
+      setUploadError(
+        (err as Error).message || "Error occurred while uploading.",
+      );
     } finally {
       setIsUploading(false);
     }
@@ -831,7 +833,16 @@ export const TradeDocumentsModule: React.FC = () => {
                   </label>
                   <select
                     value={uploadEntityType}
-                    onChange={(e) => setUploadEntityType(e.target.value as any)}
+                    onChange={(e) =>
+                      setUploadEntityType(
+                        e.target.value as
+                          | "SALES_ORDER"
+                          | "PURCHASE_ORDER"
+                          | "QUOTE"
+                          | "FULFILMENT_SHIPMENT"
+                          | "GENERAL",
+                      )
+                    }
                     className="form-control"
                     style={{ height: "40px", fontSize: "0.85rem" }}
                   >

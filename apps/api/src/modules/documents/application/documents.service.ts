@@ -74,7 +74,7 @@ export class DocumentsService {
   }): Promise<TradeDocumentRecord[]> {
     const orgId = await getOrganizationId();
     let query = `SELECT * FROM "trade_documents" WHERE "organization_id" = $1::uuid`;
-    const params: any[] = [orgId];
+    const params: unknown[] = [orgId];
 
     if (filter.entityType) {
       params.push(filter.entityType.toUpperCase());
@@ -98,63 +98,65 @@ export class DocumentsService {
 
     query += ` ORDER BY "created_at" DESC`;
 
-    const rawRows = await this.prisma.$queryRawUnsafe<any[]>(query, ...params);
+    const rawRows = await this.prisma.$queryRawUnsafe<
+      Record<string, unknown>[]
+    >(query, ...params);
 
     return rawRows.map((r) => ({
-      id: r.id,
-      organizationId: r.organization_id,
-      entityType: r.entity_type,
-      entityId: r.entity_id,
-      entityReference: r.entity_reference,
-      documentCategory: r.document_category,
-      tradePhase: r.trade_phase,
-      fileName: r.file_name,
-      fileOriginalName: r.file_original_name,
+      id: String(r.id),
+      organizationId: String(r.organization_id),
+      entityType: String(r.entity_type),
+      entityId: String(r.entity_id),
+      entityReference: r.entity_reference ? String(r.entity_reference) : null,
+      documentCategory: String(r.document_category),
+      tradePhase: String(r.trade_phase),
+      fileName: String(r.file_name),
+      fileOriginalName: String(r.file_original_name),
       fileSize: Number(r.file_size),
-      mimeType: r.mime_type,
-      filePath: r.file_path,
-      fileUrl: r.file_url || `/api/v1/documents/${r.id}/download`,
-      uploadedById: r.uploaded_by_id,
-      uploadedByName: r.uploaded_by_name || "Trader / Operations",
-      notes: r.notes,
+      mimeType: String(r.mime_type),
+      filePath: String(r.file_path),
+      fileUrl: (r.file_url as string) || `/api/v1/documents/${r.id}/download`,
+      uploadedById: r.uploaded_by_id ? String(r.uploaded_by_id) : null,
+      uploadedByName: (r.uploaded_by_name as string) || "Trader / Operations",
+      notes: r.notes ? String(r.notes) : null,
       createdAt: r.created_at
-        ? new Date(r.created_at).toISOString()
+        ? new Date(r.created_at as string | number | Date).toISOString()
         : new Date().toISOString(),
       updatedAt: r.updated_at
-        ? new Date(r.updated_at).toISOString()
+        ? new Date(r.updated_at as string | number | Date).toISOString()
         : new Date().toISOString(),
     }));
   }
 
   async getDocumentById(id: string): Promise<TradeDocumentRecord | null> {
-    const rows = await this.prisma.$queryRawUnsafe<any[]>(
+    const rows = await this.prisma.$queryRawUnsafe<Record<string, unknown>[]>(
       `SELECT * FROM "trade_documents" WHERE "id" = $1::uuid LIMIT 1`,
       id,
     );
     if (!rows || rows.length === 0) return null;
-    const r = rows[0];
+    const r = rows[0]!;
     return {
-      id: r.id,
-      organizationId: r.organization_id,
-      entityType: r.entity_type,
-      entityId: r.entity_id,
-      entityReference: r.entity_reference,
-      documentCategory: r.document_category,
-      tradePhase: r.trade_phase,
-      fileName: r.file_name,
-      fileOriginalName: r.file_original_name,
+      id: String(r.id),
+      organizationId: String(r.organization_id),
+      entityType: String(r.entity_type),
+      entityId: String(r.entity_id),
+      entityReference: r.entity_reference ? String(r.entity_reference) : null,
+      documentCategory: String(r.document_category),
+      tradePhase: String(r.trade_phase),
+      fileName: String(r.file_name),
+      fileOriginalName: String(r.file_original_name),
       fileSize: Number(r.file_size),
-      mimeType: r.mime_type,
-      filePath: r.file_path,
-      fileUrl: r.file_url || `/api/v1/documents/${r.id}/download`,
-      uploadedById: r.uploaded_by_id,
-      uploadedByName: r.uploaded_by_name,
-      notes: r.notes,
+      mimeType: String(r.mime_type),
+      filePath: String(r.file_path),
+      fileUrl: (r.file_url as string) || `/api/v1/documents/${r.id}/download`,
+      uploadedById: r.uploaded_by_id ? String(r.uploaded_by_id) : null,
+      uploadedByName: (r.uploaded_by_name as string) || "Trader / Operations",
+      notes: r.notes ? String(r.notes) : null,
       createdAt: r.created_at
-        ? new Date(r.created_at).toISOString()
+        ? new Date(r.created_at as string | number | Date).toISOString()
         : new Date().toISOString(),
       updatedAt: r.updated_at
-        ? new Date(r.updated_at).toISOString()
+        ? new Date(r.updated_at as string | number | Date).toISOString()
         : new Date().toISOString(),
     };
   }
@@ -184,32 +186,36 @@ export class DocumentsService {
         }
 
         // Determine destination folder based on entityType
+        const extractField = (f: unknown): string | undefined => {
+          if (f && typeof f === "object" && "value" in f) {
+            const val = (f as { value: unknown }).value;
+            return val !== undefined && val !== null ? String(val) : undefined;
+          }
+          return undefined;
+        };
+
         const rawEntityType =
-          (part.fields?.entityType as any)?.value ||
+          extractField(part.fields?.entityType) ||
           fields.entityType ||
           "GENERAL";
         const entityType = String(rawEntityType).toUpperCase();
-        const entityId = String(
-          (part.fields?.entityId as any)?.value || fields.entityId || uuidv4(),
-        );
-        const entityReference = String(
-          (part.fields?.entityReference as any)?.value ||
-            fields.entityReference ||
-            "",
-        );
-        const documentCategory = String(
-          (part.fields?.documentCategory as any)?.value ||
-            fields.documentCategory ||
-            "OTHER",
+        const entityId =
+          extractField(part.fields?.entityId) || fields.entityId || uuidv4();
+        const entityReference =
+          extractField(part.fields?.entityReference) ||
+          fields.entityReference ||
+          "";
+        const documentCategory = (
+          extractField(part.fields?.documentCategory) ||
+          fields.documentCategory ||
+          "OTHER"
         ).toUpperCase();
-        const notes = String(
-          (part.fields?.notes as any)?.value || fields.notes || "",
-        );
+        const notes = extractField(part.fields?.notes) || fields.notes || "";
 
         // Resolve trading phase
         const catDetails = getCategoryDetails(documentCategory);
         const tradePhase =
-          (part.fields?.tradePhase as any)?.value ||
+          extractField(part.fields?.tradePhase) ||
           catDetails?.phase ||
           "PRE_SALES";
 

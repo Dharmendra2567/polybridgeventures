@@ -24,6 +24,36 @@ interface LoginViewProps {
   onLoginSuccess: (user: UserSession) => void;
 }
 
+const DEFAULT_PROFILES = [
+  {
+    id: "usr-1",
+    name: "Rahul Patel",
+    email: "partner@polybridgeventures.com",
+    designation: "Managing Partner",
+    department: "Executive Management",
+    scope: "GLOBAL",
+    limit: "$500,000",
+  },
+  {
+    id: "usr-2",
+    name: "Ananya Sharma",
+    email: "ananya.sharma@polybridgeventures.com",
+    designation: "Procurement Lead",
+    department: "Procurement Desk",
+    scope: "DEPARTMENT",
+    limit: "$150,000",
+  },
+  {
+    id: "usr-3",
+    name: "Vikram Malhotra",
+    email: "vikram.malhotra@polybridgeventures.com",
+    designation: "Head of FX & Risk",
+    department: "Treasury",
+    scope: "GLOBAL",
+    limit: "$750,000",
+  },
+];
+
 export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess }) => {
   const [email, setEmail] = useState("partner@polybridgeventures.com");
   const [password, setPassword] = useState("••••••••••••");
@@ -39,7 +69,7 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess }) => {
       scope: string;
       limit: string;
     }>
-  >([]);
+  >(DEFAULT_PROFILES);
 
   useEffect(() => {
     fetch("/api/v1/users")
@@ -47,15 +77,25 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess }) => {
       .then((data) => {
         if (data?.users && Array.isArray(data.users) && data.users.length > 0) {
           setProfiles(
-            data.users.map((u: any) => ({
-              id: u.id,
-              name: u.name,
-              email: u.email,
-              designation: u.designation || "Staff",
-              department: u.department || "Trade Desk",
-              scope: u.dataScope || "DEPARTMENT",
-              limit: `$${Number(u.approvalLimit || 0).toLocaleString()}`,
-            })),
+            data.users.map(
+              (u: {
+                id: string;
+                name: string;
+                email: string;
+                designation?: string;
+                department?: string;
+                dataScope?: string;
+                approvalLimit?: number;
+              }) => ({
+                id: u.id,
+                name: u.name,
+                email: u.email,
+                designation: u.designation || "Staff",
+                department: u.department || "Trade Desk",
+                scope: u.dataScope || "DEPARTMENT",
+                limit: `$${Number(u.approvalLimit || 0).toLocaleString()}`,
+              }),
+            ),
           );
         }
       })

@@ -27,6 +27,27 @@ describe("App Component", () => {
           headers: new Headers(),
         } as Response;
       }
+      if (String(url).includes("/users")) {
+        return {
+          ok: true,
+          json: async () => ({
+            users: [
+              {
+                id: "usr-1",
+                name: "Rahul Patel",
+                email: "partner@polybridgeventures.com",
+                department: "Executive Management",
+                subdepartment: "Managing Desk",
+                designation: "Managing Partner",
+                role: "ADMINISTRATOR",
+                dataScope: "GLOBAL",
+                approvalLimit: 500000,
+              },
+            ],
+          }),
+          headers: new Headers(),
+        } as Response;
+      }
       return {
         ok: true,
         json: async () => ({
@@ -54,7 +75,7 @@ describe("App Component", () => {
     fireEvent.click(loginButton);
 
     expect(
-      await screen.findByText("Trading Operations Portal"),
+      await screen.findByText("Trading Operations Dashboard"),
     ).toBeInTheDocument();
     expect(screen.getByText("Polybridge Ventures")).toBeInTheDocument();
     expect(screen.getByText("Executive Dashboard")).toBeInTheDocument();
