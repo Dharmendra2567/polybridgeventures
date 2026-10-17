@@ -3,7 +3,7 @@ export interface InvoiceDownloadData {
   orderNumber?: string;
   customerName?: string;
   supplierName?: string;
-  type?: 'SALES_INVOICE' | 'SUPPLIER_BILL';
+  type?: "SALES_INVOICE" | "SUPPLIER_BILL";
   destinationPort?: string;
   deliveryTerm?: string;
   customerPo?: string;
@@ -24,27 +24,46 @@ export interface InvoiceDownloadData {
 }
 
 export function downloadCommercialInvoice(data: InvoiceDownloadData): void {
-  const isSupplierBill = data.type === 'SUPPLIER_BILL' || data.invoiceNumber.startsWith('BILL-') || !!data.supplierName;
-  const currency = data.currency || 'USD';
-  const issueDate = data.issueDate || new Date().toISOString().split('T')[0];
-  const dueDate = data.dueDate || new Date(Date.now() + 15 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+  const isSupplierBill =
+    data.type === "SUPPLIER_BILL" ||
+    data.invoiceNumber.startsWith("BILL-") ||
+    !!data.supplierName;
+  const currency = data.currency || "USD";
+  const issueDate = data.issueDate || new Date().toISOString().split("T")[0];
+  const dueDate =
+    data.dueDate ||
+    new Date(Date.now() + 15 * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
   const paid = data.paidAmount ?? 0;
-  const balance = data.balanceDue ?? (data.totalAmount - paid);
-  const status = data.status || (isSupplierBill ? 'PENDING' : 'ISSUED');
-  const orderRef = data.orderNumber || (isSupplierBill ? 'PO-2026-CONFIRMED' : 'SO-2026-CONFIRMED');
-  const poRef = data.customerPo || (isSupplierBill ? 'SUPPLIER-DELIVERY-DISPATCH' : 'PO-CLIENT-VERIFIED');
-  const port = data.destinationPort || 'Mundra / Pipavav Port, Gujarat';
-  const incoterm = data.deliveryTerm || 'FOB Origin Port / CIF Destination';
+  const balance = data.balanceDue ?? data.totalAmount - paid;
+  const status = data.status || (isSupplierBill ? "PENDING" : "ISSUED");
+  const orderRef =
+    data.orderNumber ||
+    (isSupplierBill ? "PO-2026-CONFIRMED" : "SO-2026-CONFIRMED");
+  const poRef =
+    data.customerPo ||
+    (isSupplierBill ? "SUPPLIER-DELIVERY-DISPATCH" : "PO-CLIENT-VERIFIED");
+  const port = data.destinationPort || "Mundra / Pipavav Port, Gujarat";
+  const incoterm = data.deliveryTerm || "FOB Origin Port / CIF Destination";
 
   const formattedTotal = `$${data.totalAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${currency}`;
   const formattedPaid = `$${paid.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${currency}`;
   const formattedBalance = `$${balance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${currency}`;
 
-  const docTitle = isSupplierBill ? 'Supplier Purchase Invoice / Commercial Bill' : 'Commercial Export Invoice';
-  const issuerName = isSupplierBill ? (data.supplierName || 'Gujarat Agro & Spice Processors Ltd') : 'POLYBRIDGE VENTURES LLP';
-  const issuerSubtitle = isSupplierBill ? 'Approved Agricultural Commodity Producer & Sourcing Partner' : 'International Agro-Commodities & Export Desk';
-  const recipientTitle = isSupplierBill ? 'Billed To (Trading House):' : 'Buyer & Consignee:';
-  const recipientName = isSupplierBill ? 'Polybridge Ventures LLP' : (data.customerName || 'Verified International Buyer LLC');
+  const docTitle = isSupplierBill
+    ? "Supplier Purchase Invoice / Commercial Bill"
+    : "Commercial Export Invoice";
+  const issuerName = isSupplierBill
+    ? data.supplierName || "Gujarat Agro & Spice Processors Ltd"
+    : "POLYBRIDGE VENTURES LLP";
+  const issuerSubtitle = isSupplierBill
+    ? "Approved Agricultural Commodity Producer & Sourcing Partner"
+    : "International Agro-Commodities & Export Desk";
+  const recipientTitle = isSupplierBill
+    ? "Billed To (Trading House):"
+    : "Buyer & Consignee:";
+  const recipientName = isSupplierBill
+    ? "Polybridge Ventures LLP"
+    : data.customerName || "Verified International Buyer LLC";
 
   const htmlContent = `<!DOCTYPE html>
 <html lang="en">
@@ -327,15 +346,19 @@ export function downloadCommercialInvoice(data: InvoiceDownloadData): void {
         <div class="company-title">${issuerName}</div>
         <div class="company-subtitle">${issuerSubtitle}</div>
         <div class="company-meta">
-          ${isSupplierBill ? `
+          ${
+            isSupplierBill
+              ? `
             Sourcing Facility & Procurement Operations<br>
             State: Gujarat, India | Quality Grade: Export Certified<br>
             Bank Settlement: Verified RTGS / SWIFT Remittance Partner
-          ` : `
+          `
+              : `
             Corporate Reg: LLPIN-AAC-8921 | IEC No: PBV-EXP-99201<br>
             Ahmedabad Trade Center, Gujarat 380015, India<br>
             Desk: +91 (0) 79 4829 1000 | exports@polybridgeventures.com
-          `}
+          `
+          }
         </div>
       </div>
       <div class="doc-badge">
@@ -352,8 +375,8 @@ export function downloadCommercialInvoice(data: InvoiceDownloadData): void {
         <table class="meta-table">
           <tr><td class="meta-label">Port / Station:</td><td class="meta-val">${port}</td></tr>
           <tr><td class="meta-label">Delivery Terms:</td><td class="meta-val">${incoterm}</td></tr>
-          <tr><td class="meta-label">${isSupplierBill ? 'Purchase Order Ref:' : 'Sales Order Ref:'}</td><td class="meta-val">${orderRef}</td></tr>
-          <tr><td class="meta-label">${isSupplierBill ? 'Delivery / Dispatch Ref:' : 'Buyer PO Ref:'}</td><td class="meta-val">${poRef}</td></tr>
+          <tr><td class="meta-label">${isSupplierBill ? "Purchase Order Ref:" : "Sales Order Ref:"}</td><td class="meta-val">${orderRef}</td></tr>
+          <tr><td class="meta-label">${isSupplierBill ? "Delivery / Dispatch Ref:" : "Buyer PO Ref:"}</td><td class="meta-val">${poRef}</td></tr>
         </table>
       </div>
       <div>
@@ -362,7 +385,7 @@ export function downloadCommercialInvoice(data: InvoiceDownloadData): void {
           <tr><td class="meta-label">Document Date:</td><td class="meta-val">${issueDate}</td></tr>
           <tr><td class="meta-label">Due / Settlement Date:</td><td class="meta-val">${dueDate}</td></tr>
           <tr><td class="meta-label">Contract Currency:</td><td class="meta-val">${currency} (United States Dollar)</td></tr>
-          <tr><td class="meta-label">Payment Terms:</td><td class="meta-val">${isSupplierBill ? '15 Days Credit Wire' : '30 Days Net SWIFT Wire'}</td></tr>
+          <tr><td class="meta-label">Payment Terms:</td><td class="meta-val">${isSupplierBill ? "15 Days Credit Wire" : "30 Days Net SWIFT Wire"}</td></tr>
         </table>
       </div>
     </div>
@@ -381,8 +404,8 @@ export function downloadCommercialInvoice(data: InvoiceDownloadData): void {
         <tr>
           <td>1</td>
           <td>
-            <strong>${isSupplierBill ? 'Supplier Procurement Consignment Delivery' : 'Export Consignment Fulfillment'} (${orderRef})</strong><br>
-            <span style="font-size: 11px; color: #64748b;">${isSupplierBill ? 'Batch Quality Inspected • Certified Moisture & Purity Standard' : 'Premium Export Grade Standard • Pre-shipment Tested • CIF Incoterms 2020'}</span>
+            <strong>${isSupplierBill ? "Supplier Procurement Consignment Delivery" : "Export Consignment Fulfillment"} (${orderRef})</strong><br>
+            <span style="font-size: 11px; color: #64748b;">${isSupplierBill ? "Batch Quality Inspected • Certified Moisture & Purity Standard" : "Premium Export Grade Standard • Pre-shipment Tested • CIF Incoterms 2020"}</span>
           </td>
           <td class="tar">1 Lot</td>
           <td class="tar">${formattedTotal}</td>
@@ -393,12 +416,12 @@ export function downloadCommercialInvoice(data: InvoiceDownloadData): void {
 
     <div class="summary-grid">
       <div class="bank-box">
-        <div class="bank-title">${isSupplierBill ? 'Supplier Bank Remittance Routing Details:' : 'Inward SWIFT Wire Remittance Instructions:'}</div>
-        <div class="bank-item"><strong>Beneficiary:</strong> ${isSupplierBill ? issuerName : 'Polybridge Ventures LLP'}</div>
+        <div class="bank-title">${isSupplierBill ? "Supplier Bank Remittance Routing Details:" : "Inward SWIFT Wire Remittance Instructions:"}</div>
+        <div class="bank-item"><strong>Beneficiary:</strong> ${isSupplierBill ? issuerName : "Polybridge Ventures LLP"}</div>
         <div class="bank-item"><strong>Bank Name:</strong> Emirates NBD / State Bank of India Commercial</div>
         <div class="bank-item"><strong>SWIFT / BIC Code:</strong> ENBDINBBXXX</div>
         <div class="bank-item"><strong>IBAN / Account Number:</strong> 9948201948201</div>
-        <div class="bank-item"><strong>Purpose Code:</strong> P0102 (${isSupplierBill ? 'Procurement & Supply Settlement' : 'Export of Commodities & Goods'})</div>
+        <div class="bank-item"><strong>Purpose Code:</strong> P0102 (${isSupplierBill ? "Procurement & Supply Settlement" : "Export of Commodities & Goods"})</div>
         <div class="bank-item" style="margin-top: 4px; font-size: 11px; color: #64748b;">
           * Quoting Document Ref <strong>${data.invoiceNumber}</strong> ensures automated reconciliation in Finance.
         </div>
@@ -422,7 +445,7 @@ export function downloadCommercialInvoice(data: InvoiceDownloadData): void {
           <span>${formattedTotal}</span>
         </div>
         <div class="total-row" style="color: #059669; font-weight: 600; margin-top: 4px;">
-          <span>${isSupplierBill ? 'Disbursed to Date:' : 'Remitted to Date:'}</span>
+          <span>${isSupplierBill ? "Disbursed to Date:" : "Remitted to Date:"}</span>
           <span>${formattedPaid}</span>
         </div>
         <div class="total-row" style="color: #d97706; font-weight: 700;">
@@ -434,11 +457,11 @@ export function downloadCommercialInvoice(data: InvoiceDownloadData): void {
 
     <div class="footer-stamp">
       <div style="font-size: 11px; color: #64748b; line-height: 1.4; max-width: 440px;">
-        ${isSupplierBill ? 'Certified that the commodities invoiced above have been received or dispatched in full conformance with Purchase Order terms.' : 'Certified that this invoice represents the true value of the goods shipped and that all particulars are correct in accordance with ICC Incoterms 2020 international trade regulations.'}
+        ${isSupplierBill ? "Certified that the commodities invoiced above have been received or dispatched in full conformance with Purchase Order terms." : "Certified that this invoice represents the true value of the goods shipped and that all particulars are correct in accordance with ICC Incoterms 2020 international trade regulations."}
       </div>
       <div class="sign-box">
-        <div style="font-weight: 700; font-size: 11px; color: #0f172a;">${isSupplierBill ? 'Authorized Supplier Officer' : 'For POLYBRIDGE VENTURES LLP'}</div>
-        <div class="sign-line">${isSupplierBill ? 'Commercial Dispatch Desk' : 'Authorized Signatory / Finance Controller'}</div>
+        <div style="font-weight: 700; font-size: 11px; color: #0f172a;">${isSupplierBill ? "Authorized Supplier Officer" : "For POLYBRIDGE VENTURES LLP"}</div>
+        <div class="sign-line">${isSupplierBill ? "Commercial Dispatch Desk" : "Authorized Signatory / Finance Controller"}</div>
       </div>
     </div>
   </div>
@@ -447,10 +470,12 @@ export function downloadCommercialInvoice(data: InvoiceDownloadData): void {
 </html>`;
 
   // 1. Trigger file download
-  const filename = isSupplierBill ? `Supplier-Bill-${data.invoiceNumber}.html` : `Commercial-Invoice-${data.invoiceNumber}.html`;
-  const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' });
+  const filename = isSupplierBill
+    ? `Supplier-Bill-${data.invoiceNumber}.html`
+    : `Commercial-Invoice-${data.invoiceNumber}.html`;
+  const blob = new Blob([htmlContent], { type: "text/html;charset=utf-8" });
   const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
+  const a = document.createElement("a");
   a.href = url;
   a.download = filename;
   document.body.appendChild(a);
@@ -459,13 +484,13 @@ export function downloadCommercialInvoice(data: InvoiceDownloadData): void {
 
   // 2. Open printable invoice in a new tab with print trigger
   try {
-    const printWindow = window.open('', '_blank');
+    const printWindow = window.open("", "_blank");
     if (printWindow) {
       printWindow.document.write(htmlContent);
       printWindow.document.close();
     }
   } catch (err) {
-    console.warn('Could not open print window preview:', err);
+    console.warn("Could not open print window preview:", err);
   }
 
   setTimeout(() => URL.revokeObjectURL(url), 10000);

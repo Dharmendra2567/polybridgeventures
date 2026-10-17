@@ -171,15 +171,28 @@ export const Sidebar: React.FC<SidebarProps> = ({
               }
         }
       >
-        <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", overflow: "hidden" }}>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "0.75rem",
+            overflow: "hidden",
+          }}
+        >
           <div
             className="brand-logo"
-            style={isCollapsed ? { width: 30, height: 30, fontSize: "0.95rem" } : undefined}
+            style={
+              isCollapsed
+                ? { width: 30, height: 30, fontSize: "0.95rem" }
+                : undefined
+            }
             title="Polybridge Ventures LLP"
           >
             PV
           </div>
-          {!isCollapsed && <div className="brand-title">Polybridge Ventures</div>}
+          {!isCollapsed && (
+            <div className="brand-title">Polybridge Ventures</div>
+          )}
         </div>
 
         {onToggleCollapse && (
@@ -192,18 +205,26 @@ export const Sidebar: React.FC<SidebarProps> = ({
             }}
             title={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
           >
-            {isCollapsed ? <PanelLeftOpen size={16} /> : <PanelLeftClose size={17} />}
+            {isCollapsed ? (
+              <PanelLeftOpen size={16} />
+            ) : (
+              <PanelLeftClose size={17} />
+            )}
           </button>
         )}
       </div>
 
       <div
         className="sidebar-nav"
-        style={isCollapsed ? { padding: "1rem 0.4rem", gap: "1rem" } : undefined}
+        style={
+          isCollapsed ? { padding: "1rem 0.4rem", gap: "1rem" } : undefined
+        }
       >
         {navSections.map((section) => (
           <div key={section.title} className="nav-group">
-            {!isCollapsed && <div className="nav-group-title">{section.title}</div>}
+            {!isCollapsed && (
+              <div className="nav-group-title">{section.title}</div>
+            )}
             {section.items.map((item) => {
               const Icon = item.icon;
               const isActive = currentTab === item.id;
@@ -233,7 +254,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
         ))}
       </div>
 
-      <div className="sidebar-footer" style={isCollapsed ? { padding: "0.75rem 0.25rem" } : undefined}>
+      <div
+        className="sidebar-footer"
+        style={isCollapsed ? { padding: "0.75rem 0.25rem" } : undefined}
+      >
         {isCollapsed ? (
           <div
             style={{
@@ -265,14 +289,29 @@ export const Sidebar: React.FC<SidebarProps> = ({
         ) : (
           <div
             className="user-card"
-            style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+            }}
           >
-            <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", overflow: "hidden" }}>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "0.75rem",
+                overflow: "hidden",
+              }}
+            >
               <div className="user-avatar">{getInitials(user?.name)}</div>
               <div className="user-info" style={{ overflow: "hidden" }}>
                 <span
                   className="user-name"
-                  style={{ whiteSpace: "nowrap", textOverflow: "ellipsis", overflow: "hidden" }}
+                  style={{
+                    whiteSpace: "nowrap",
+                    textOverflow: "ellipsis",
+                    overflow: "hidden",
+                  }}
                 >
                   {user?.name || "Rahul Patel"}
                 </span>

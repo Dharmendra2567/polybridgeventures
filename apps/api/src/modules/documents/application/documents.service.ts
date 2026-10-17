@@ -1,16 +1,19 @@
-import type { FastifyRequest } from 'fastify';
-import path from 'node:path';
-import { v4 as uuidv4 } from 'uuid';
-import { logger } from '../../../infrastructure/logging/logger.js';
-import { getOrganizationId } from '../../../shared/organization.context.js';
-import { logAudit } from '../../../shared/audit.service.js';
-import { localStorageProvider, StorageProvider } from '../infrastructure/storage.provider.js';
+import type { FastifyRequest } from "fastify";
+import path from "node:path";
+import { v4 as uuidv4 } from "uuid";
+import { logger } from "../../../infrastructure/logging/logger.js";
+import { getOrganizationId } from "../../../shared/organization.context.js";
+import { logAudit } from "../../../shared/audit.service.js";
+import {
+  localStorageProvider,
+  StorageProvider,
+} from "../infrastructure/storage.provider.js";
 import {
   TRADE_DOCUMENT_TAXONOMY,
   getCategoriesForEntity,
   getCategoryDetails,
-} from '../domain/document-taxonomy.js';
-import type { PrismaClient } from '../../../generated/client/index.js';
+} from "../domain/document-taxonomy.js";
+import type { PrismaClient } from "../../../generated/client/index.js";
 
 export interface TradeDocumentRecord {
   id: string;
@@ -34,16 +37,16 @@ export interface TradeDocumentRecord {
 }
 
 const ALLOWED_EXTENSIONS = new Set([
-  '.pdf',
-  '.doc',
-  '.docx',
-  '.xls',
-  '.xlsx',
-  '.csv',
-  '.jpg',
-  '.jpeg',
-  '.png',
-  '.webp',
+  ".pdf",
+  ".doc",
+  ".docx",
+  ".xls",
+  ".xlsx",
+  ".csv",
+  ".jpg",
+  ".jpeg",
+  ".png",
+  ".webp",
 ]);
 
 export class DocumentsService {
@@ -51,7 +54,7 @@ export class DocumentsService {
 
   constructor(
     private readonly prisma: PrismaClient,
-    storage?: StorageProvider
+    storage?: StorageProvider,
   ) {
     this.storage = storage || localStorageProvider;
   }
@@ -112,17 +115,21 @@ export class DocumentsService {
       filePath: r.file_path,
       fileUrl: r.file_url || `/api/v1/documents/${r.id}/download`,
       uploadedById: r.uploaded_by_id,
-      uploadedByName: r.uploaded_by_name || 'Trader / Operations',
+      uploadedByName: r.uploaded_by_name || "Trader / Operations",
       notes: r.notes,
-      createdAt: r.created_at ? new Date(r.created_at).toISOString() : new Date().toISOString(),
-      updatedAt: r.updated_at ? new Date(r.updated_at).toISOString() : new Date().toISOString(),
+      createdAt: r.created_at
+        ? new Date(r.created_at).toISOString()
+        : new Date().toISOString(),
+      updatedAt: r.updated_at
+        ? new Date(r.updated_at).toISOString()
+        : new Date().toISOString(),
     }));
   }
 
   async getDocumentById(id: string): Promise<TradeDocumentRecord | null> {
     const rows = await this.prisma.$queryRawUnsafe<any[]>(
       `SELECT * FROM "trade_documents" WHERE "id" = $1::uuid LIMIT 1`,
-      id
+      id,
     );
     if (!rows || rows.length === 0) return null;
     const r = rows[0];
@@ -143,15 +150,21 @@ export class DocumentsService {
       uploadedById: r.uploaded_by_id,
       uploadedByName: r.uploaded_by_name,
       notes: r.notes,
-      createdAt: r.created_at ? new Date(r.created_at).toISOString() : new Date().toISOString(),
-      updatedAt: r.updated_at ? new Date(r.updated_at).toISOString() : new Date().toISOString(),
+      createdAt: r.created_at
+        ? new Date(r.created_at).toISOString()
+        : new Date().toISOString(),
+      updatedAt: r.updated_at
+        ? new Date(r.updated_at).toISOString()
+        : new Date().toISOString(),
     };
   }
 
   /**
    * Uploads one or multiple documents from a multipart request.
    */
-  async handleMultipartUpload(req: FastifyRequest): Promise<TradeDocumentRecord[]> {
+  async handleMultipartUpload(
+    req: FastifyRequest,
+  ): Promise<TradeDocumentRecord[]> {
     const orgId = await getOrganizationId();
     const parts = req.files();
     const createdDocuments: TradeDocumentRecord[] = [];
@@ -160,36 +173,54 @@ export class DocumentsService {
     const fields: Record<string, string> = {};
 
     for await (const part of parts) {
-      if (part.type === 'file') {
+      if (part.type === "file") {
         const originalName = part.filename;
         const ext = path.extname(originalName).toLowerCase();
 
         if (!ALLOWED_EXTENSIONS.has(ext)) {
           throw new Error(
-            `File format "${ext}" is not permitted. Allowed formats: PDF, DOC, DOCX, XLS, XLSX, CSV, JPG, PNG, WEBP.`
+            `File format "${ext}" is not permitted. Allowed formats: PDF, DOC, DOCX, XLS, XLSX, CSV, JPG, PNG, WEBP.`,
           );
         }
 
         // Determine destination folder based on entityType
-        const rawEntityType = (part.fields?.entityType as any)?.value || fields.entityType || 'GENERAL';
+        const rawEntityType =
+          (part.fields?.entityType as any)?.value ||
+          fields.entityType ||
+          "GENERAL";
         const entityType = String(rawEntityType).toUpperCase();
-        const entityId = String((part.fields?.entityId as any)?.value || fields.entityId || uuidv4());
-        const entityReference = String((part.fields?.entityReference as any)?.value || fields.entityReference || '');
-        const documentCategory = String((part.fields?.documentCategory as any)?.value || fields.documentCategory || 'OTHER').toUpperCase();
-        const notes = String((part.fields?.notes as any)?.value || fields.notes || '');
+        const entityId = String(
+          (part.fields?.entityId as any)?.value || fields.entityId || uuidv4(),
+        );
+        const entityReference = String(
+          (part.fields?.entityReference as any)?.value ||
+            fields.entityReference ||
+            "",
+        );
+        const documentCategory = String(
+          (part.fields?.documentCategory as any)?.value ||
+            fields.documentCategory ||
+            "OTHER",
+        ).toUpperCase();
+        const notes = String(
+          (part.fields?.notes as any)?.value || fields.notes || "",
+        );
 
         // Resolve trading phase
         const catDetails = getCategoryDetails(documentCategory);
-        const tradePhase = (part.fields?.tradePhase as any)?.value || catDetails?.phase || 'PRE_SALES';
+        const tradePhase =
+          (part.fields?.tradePhase as any)?.value ||
+          catDetails?.phase ||
+          "PRE_SALES";
 
-        const subfolder = entityType.toLowerCase().replace(/[^a-z0-9]/g, '_');
+        const subfolder = entityType.toLowerCase().replace(/[^a-z0-9]/g, "_");
 
         // Save file through storage provider
         const storageResult = await this.storage.saveFile(
           part.file,
           originalName,
           part.mimetype,
-          subfolder
+          subfolder,
         );
 
         const docId = uuidv4();
@@ -221,15 +252,15 @@ export class DocumentsService {
           part.mimetype,
           storageResult.storagePath,
           downloadUrl,
-          notes || null
+          notes || null,
         );
 
         await logAudit(
-          'Trader',
-          'UPLOAD',
-          'TradeDocument',
+          "Trader",
+          "UPLOAD",
+          "TradeDocument",
           docId,
-          `Uploaded ${catDetails?.name || documentCategory} (${originalName}) for ${entityType} ${entityReference || entityId}`
+          `Uploaded ${catDetails?.name || documentCategory} (${originalName}) for ${entityType} ${entityReference || entityId}`,
         );
 
         createdDocuments.push({
@@ -268,21 +299,24 @@ export class DocumentsService {
     try {
       await this.storage.deleteFile(doc.filePath);
     } catch (err) {
-      logger.warn({ err, filePath: doc.filePath }, '[Documents] Storage file unlink failed');
+      logger.warn(
+        { err, filePath: doc.filePath },
+        "[Documents] Storage file unlink failed",
+      );
     }
 
     // Delete record from PostgreSQL
     await this.prisma.$executeRawUnsafe(
       `DELETE FROM "trade_documents" WHERE "id" = $1::uuid`,
-      id
+      id,
     );
 
     await logAudit(
-      'Trader',
-      'DELETE',
-      'TradeDocument',
+      "Trader",
+      "DELETE",
+      "TradeDocument",
       id,
-      `Deleted document ${doc.fileOriginalName} (${doc.documentCategory})`
+      `Deleted document ${doc.fileOriginalName} (${doc.documentCategory})`,
     );
 
     return true;

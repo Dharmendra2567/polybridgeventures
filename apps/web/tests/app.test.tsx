@@ -43,7 +43,9 @@ describe("App Component", () => {
     render(<App />);
     expect(screen.getByText("Polybridge Ventures LLP")).toBeInTheDocument();
     expect(screen.getByText("Sign In to Trade Desk")).toBeInTheDocument();
-    expect(screen.getByText("One-Click Role Authentication:")).toBeInTheDocument();
+    expect(
+      screen.getByText("One-Click Role Authentication:"),
+    ).toBeInTheDocument();
   });
 
   it("Authenticates and opens Trading Operations Portal upon login", async () => {
@@ -51,7 +53,9 @@ describe("App Component", () => {
     const loginButton = screen.getByText("Rahul Patel");
     fireEvent.click(loginButton);
 
-    expect(await screen.findByText("Trading Operations Portal")).toBeInTheDocument();
+    expect(
+      await screen.findByText("Trading Operations Portal"),
+    ).toBeInTheDocument();
     expect(screen.getByText("Polybridge Ventures")).toBeInTheDocument();
     expect(screen.getByText("Executive Dashboard")).toBeInTheDocument();
   });

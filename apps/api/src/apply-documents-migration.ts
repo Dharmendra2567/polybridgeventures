@@ -1,8 +1,10 @@
-import { getPrismaClient } from './infrastructure/database/prisma.js';
+import { getPrismaClient } from "./infrastructure/database/prisma.js";
 
 export async function applyDocumentsMigration() {
   const prisma = getPrismaClient();
-  console.log('[Documents Migration] Starting database migration for Trade Documents...');
+  console.log(
+    "[Documents Migration] Starting database migration for Trade Documents...",
+  );
 
   const ddlStatements = [
     `CREATE TABLE IF NOT EXISTS "trade_documents" (
@@ -33,21 +35,26 @@ export async function applyDocumentsMigration() {
   for (const stmt of ddlStatements) {
     try {
       await prisma.$executeRawUnsafe(stmt);
-      console.log('[Documents Migration] Executed DDL statement successfully.');
+      console.log("[Documents Migration] Executed DDL statement successfully.");
     } catch (err: any) {
-      console.error('[Documents Migration Warning] Statement failed:', err.message);
+      console.error(
+        "[Documents Migration Warning] Statement failed:",
+        err.message,
+      );
     }
   }
 
-  console.log('[Documents Migration] All Trade Documents DDL applied successfully.');
+  console.log(
+    "[Documents Migration] All Trade Documents DDL applied successfully.",
+  );
 }
 
 // Allow direct script execution
-if (process.argv[1]?.endsWith('apply-documents-migration.ts')) {
+if (process.argv[1]?.endsWith("apply-documents-migration.ts")) {
   applyDocumentsMigration()
     .then(() => process.exit(0))
     .catch((err) => {
-      console.error('[Documents Migration Fatal]', err);
+      console.error("[Documents Migration Fatal]", err);
       process.exit(1);
     });
 }

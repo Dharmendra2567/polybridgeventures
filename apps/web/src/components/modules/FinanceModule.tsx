@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from "react";
 import {
   DollarSign,
   Plus,
@@ -16,12 +16,12 @@ import {
   TrendingUp,
   Wallet,
   Send,
-} from 'lucide-react';
-import { TableToolbar } from '../common/TableToolbar.js';
-import { DetailDrawer } from '../common/DetailDrawer.js';
-import { exportToCsv } from '../../utils/csvExport.js';
-import { downloadCommercialInvoice } from '../../utils/invoiceDownload.js';
-import { API_BASE } from '../../utils/apiConfig.js';
+} from "lucide-react";
+import { TableToolbar } from "../common/TableToolbar.js";
+import { DetailDrawer } from "../common/DetailDrawer.js";
+import { exportToCsv } from "../../utils/csvExport.js";
+import { downloadCommercialInvoice } from "../../utils/invoiceDownload.js";
+import { API_BASE } from "../../utils/apiConfig.js";
 
 interface InvoiceItem {
   id: string;
@@ -32,7 +32,8 @@ interface InvoiceItem {
   paidAmount: number;
   balanceDue: number;
   currency: string;
-  status: 'DRAFT' | 'ISSUED' | 'PARTIALLY_PAID' | 'PAID' | 'OVERDUE' | 'CANCELLED';
+  status:
+    "DRAFT" | "ISSUED" | "PARTIALLY_PAID" | "PAID" | "OVERDUE" | "CANCELLED";
   issueDate: string;
   dueDate: string;
 }
@@ -46,32 +47,51 @@ interface SupplierBillItem {
   paidAmount: number;
   balanceDue: number;
   currency: string;
-  status: 'PENDING' | 'PARTIALLY_PAID' | 'PAID' | 'CANCELLED';
+  status: "PENDING" | "PARTIALLY_PAID" | "PAID" | "CANCELLED";
   dueDate: string;
   createdAt: string;
 }
 
-type InvoiceSortField = 'invoiceNumber' | 'orderNumber' | 'customerName' | 'totalAmount' | 'paidAmount' | 'balanceDue' | 'status' | 'dueDate';
-type BillSortField = 'billNumber' | 'poNumber' | 'supplierName' | 'totalAmount' | 'paidAmount' | 'balanceDue' | 'status' | 'dueDate';
-type SortDirection = 'asc' | 'desc';
+type InvoiceSortField =
+  | "invoiceNumber"
+  | "orderNumber"
+  | "customerName"
+  | "totalAmount"
+  | "paidAmount"
+  | "balanceDue"
+  | "status"
+  | "dueDate";
+type BillSortField =
+  | "billNumber"
+  | "poNumber"
+  | "supplierName"
+  | "totalAmount"
+  | "paidAmount"
+  | "balanceDue"
+  | "status"
+  | "dueDate";
+type SortDirection = "asc" | "desc";
 
 export const FinanceModule: React.FC = () => {
   const [invoices, setInvoices] = useState<InvoiceItem[]>([]);
   const [bills, setBills] = useState<SupplierBillItem[]>([]);
-  const [activeTab, setActiveTab] = useState<'AR_INVOICES' | 'AP_BILLS'>('AR_INVOICES');
+  const [activeTab, setActiveTab] = useState<"AR_INVOICES" | "AP_BILLS">(
+    "AR_INVOICES",
+  );
 
-  const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState('ALL');
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState("ALL");
 
   // Supplier Bill filtering & sorting
-  const [billSearchQuery, setBillSearchQuery] = useState('');
-  const [billStatusFilter, setBillStatusFilter] = useState('ALL');
-  const [billSortField, setBillSortField] = useState<BillSortField>('billNumber');
-  const [billSortDir, setBillSortDir] = useState<SortDirection>('desc');
+  const [billSearchQuery, setBillSearchQuery] = useState("");
+  const [billStatusFilter, setBillStatusFilter] = useState("ALL");
+  const [billSortField, setBillSortField] =
+    useState<BillSortField>("billNumber");
+  const [billSortDir, setBillSortDir] = useState<SortDirection>("desc");
 
   // Sorting
-  const [sortField, setSortField] = useState<InvoiceSortField>('invoiceNumber');
-  const [sortDir, setSortDir] = useState<SortDirection>('desc');
+  const [sortField, setSortField] = useState<InvoiceSortField>("invoiceNumber");
+  const [sortDir, setSortDir] = useState<SortDirection>("desc");
 
   // Detail Drawers
   const [drawerInvoice, setDrawerInvoice] = useState<InvoiceItem | null>(null);
@@ -81,38 +101,46 @@ export const FinanceModule: React.FC = () => {
   const [showPayModal, setShowPayModal] = useState(false);
   const [showDisburseModal, setShowDisburseModal] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [editingInvoice, setEditingInvoice] = useState<InvoiceItem | null>(null);
+  const [editingInvoice, setEditingInvoice] = useState<InvoiceItem | null>(
+    null,
+  );
 
   // Inward Payment Form
-  const [selectedInvoice, setSelectedInvoice] = useState<InvoiceItem | null>(null);
-  const [payAmount, setPayAmount] = useState('');
-  const [swiftRef, setSwiftRef] = useState('ENBD-SWIFT-99482');
+  const [selectedInvoice, setSelectedInvoice] = useState<InvoiceItem | null>(
+    null,
+  );
+  const [payAmount, setPayAmount] = useState("");
+  const [swiftRef, setSwiftRef] = useState("ENBD-SWIFT-99482");
   const [isSubmittingPayment, setIsSubmittingPayment] = useState(false);
 
   // Outward Disbursement Form
-  const [selectedBill, setSelectedBill] = useState<SupplierBillItem | null>(null);
-  const [disburseAmount, setDisburseAmount] = useState('');
-  const [disburseRef, setDisburseRef] = useState('WIRE-OUT-99214');
+  const [selectedBill, setSelectedBill] = useState<SupplierBillItem | null>(
+    null,
+  );
+  const [disburseAmount, setDisburseAmount] = useState("");
+  const [disburseRef, setDisburseRef] = useState("WIRE-OUT-99214");
   const [isSubmittingDisburse, setIsSubmittingDisburse] = useState(false);
 
   // Create Invoice Form
-  const [newInvNumber, setNewInvNumber] = useState('');
-  const [newOrderRef, setNewOrderRef] = useState('SO-2026-001');
-  const [newCustomer, setNewCustomer] = useState('Al-Madina Foodstuff Wholesalers LLC');
-  const [newTotal, setNewTotal] = useState('114800');
-  const [newPaid, setNewPaid] = useState('0');
-  const [newDueDate, setNewDueDate] = useState('2026-11-20');
-  const [newStatus, setNewStatus] = useState<InvoiceItem['status']>('ISSUED');
+  const [newInvNumber, setNewInvNumber] = useState("");
+  const [newOrderRef, setNewOrderRef] = useState("SO-2026-001");
+  const [newCustomer, setNewCustomer] = useState(
+    "Al-Madina Foodstuff Wholesalers LLC",
+  );
+  const [newTotal, setNewTotal] = useState("114800");
+  const [newPaid, setNewPaid] = useState("0");
+  const [newDueDate, setNewDueDate] = useState("2026-11-20");
+  const [newStatus, setNewStatus] = useState<InvoiceItem["status"]>("ISSUED");
   const [isSubmittingCreate, setIsSubmittingCreate] = useState(false);
 
   // Edit Invoice Form
-  const [editInvNumber, setEditInvNumber] = useState('');
-  const [editOrderRef, setEditOrderRef] = useState('');
-  const [editCustomer, setEditCustomer] = useState('');
-  const [editTotal, setEditTotal] = useState('');
-  const [editPaid, setEditPaid] = useState('');
-  const [editDueDate, setEditDueDate] = useState('');
-  const [editStatus, setEditStatus] = useState<InvoiceItem['status']>('ISSUED');
+  const [editInvNumber, setEditInvNumber] = useState("");
+  const [editOrderRef, setEditOrderRef] = useState("");
+  const [editCustomer, setEditCustomer] = useState("");
+  const [editTotal, setEditTotal] = useState("");
+  const [editPaid, setEditPaid] = useState("");
+  const [editDueDate, setEditDueDate] = useState("");
+  const [editStatus, setEditStatus] = useState<InvoiceItem["status"]>("ISSUED");
   const [isUpdating, setIsUpdating] = useState(false);
 
   interface AvailableOrder {
@@ -133,7 +161,7 @@ export const FinanceModule: React.FC = () => {
   const [unbilledPos, setUnbilledPos] = useState<UnbilledPoItem[]>([]);
   const [isGeneratingPoBill, setIsGeneratingPoBill] = useState(false);
   const [isCustomOrderRef, setIsCustomOrderRef] = useState(false);
-  const [customOrderRef, setCustomOrderRef] = useState('');
+  const [customOrderRef, setCustomOrderRef] = useState("");
 
   const [isLoading, setIsLoading] = useState(true);
 
@@ -157,11 +185,17 @@ export const FinanceModule: React.FC = () => {
       if (resOrders.ok) {
         const oData = await resOrders.json();
         if (Array.isArray(oData.orders)) {
-          const list: AvailableOrder[] = oData.orders.map((o: { orderNumber: string; customerName: string; totalAmount: number }) => ({
-            orderNumber: o.orderNumber,
-            customerName: o.customerName,
-            totalAmount: o.totalAmount,
-          }));
+          const list: AvailableOrder[] = oData.orders.map(
+            (o: {
+              orderNumber: string;
+              customerName: string;
+              totalAmount: number;
+            }) => ({
+              orderNumber: o.orderNumber,
+              customerName: o.customerName,
+              totalAmount: o.totalAmount,
+            }),
+          );
           setAvailableOrders(list);
           if (list[0]) {
             setNewOrderRef(list[0].orderNumber);
@@ -172,20 +206,33 @@ export const FinanceModule: React.FC = () => {
       }
       if (resPos && resPos.ok) {
         const pData = await resPos.json();
-        const poList = Array.isArray(pData.purchaseOrders) ? pData.purchaseOrders : [];
+        const poList = Array.isArray(pData.purchaseOrders)
+          ? pData.purchaseOrders
+          : [];
         const unbilled: UnbilledPoItem[] = poList
-          .filter((p: { status: string; billNumber?: string }) => p.status === 'COMPLETED' && !p.billNumber)
-          .map((p: { id: string; poNumber: string; supplierName: string; totalCost: number; currency?: string }) => ({
-            id: p.id,
-            poNumber: p.poNumber,
-            supplierName: p.supplierName,
-            totalCost: p.totalCost,
-            currency: p.currency || 'USD',
-          }));
+          .filter(
+            (p: { status: string; billNumber?: string }) =>
+              p.status === "COMPLETED" && !p.billNumber,
+          )
+          .map(
+            (p: {
+              id: string;
+              poNumber: string;
+              supplierName: string;
+              totalCost: number;
+              currency?: string;
+            }) => ({
+              id: p.id,
+              poNumber: p.poNumber,
+              supplierName: p.supplierName,
+              totalCost: p.totalCost,
+              currency: p.currency || "USD",
+            }),
+          );
         setUnbilledPos(unbilled);
       }
     } catch (err) {
-      console.warn('API error:', err);
+      console.warn("API error:", err);
     } finally {
       setIsLoading(false);
     }
@@ -194,11 +241,14 @@ export const FinanceModule: React.FC = () => {
   const handleQuickGenerateBill = async (p: UnbilledPoItem) => {
     setIsGeneratingPoBill(true);
     try {
-      const res = await fetch(`${API_BASE}/procurement/purchase-orders/${p.id}/generate-bill`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({}),
-      });
+      const res = await fetch(
+        `${API_BASE}/procurement/purchase-orders/${p.id}/generate-bill`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({}),
+        },
+      );
       const data = await res.json();
       if (res.ok && data.bill) {
         await fetchFinanceData();
@@ -208,15 +258,15 @@ export const FinanceModule: React.FC = () => {
           supplierName: p.supplierName,
           totalAmount: p.totalCost,
           currency: p.currency,
-          type: 'SUPPLIER_BILL',
-          status: data.bill.status || 'PENDING',
+          type: "SUPPLIER_BILL",
+          status: data.bill.status || "PENDING",
         });
       } else {
-        alert(data.error || 'Failed to generate supplier bill');
+        alert(data.error || "Failed to generate supplier bill");
       }
     } catch (err) {
-      console.error('Error generating bill:', err);
-      alert('Network error while generating supplier bill');
+      console.error("Error generating bill:", err);
+      alert("Network error while generating supplier bill");
     } finally {
       setIsGeneratingPoBill(false);
     }
@@ -227,10 +277,10 @@ export const FinanceModule: React.FC = () => {
   }, []);
 
   const handleSelectOrderForInvoice = (val: string) => {
-    if (val === '__OTHER__') {
+    if (val === "__OTHER__") {
       setIsCustomOrderRef(true);
-      setCustomOrderRef('');
-      setNewOrderRef('');
+      setCustomOrderRef("");
+      setNewOrderRef("");
       return;
     }
     setIsCustomOrderRef(false);
@@ -242,23 +292,37 @@ export const FinanceModule: React.FC = () => {
     }
   };
 
-  const handleUpdateStatus = async (invoiceId: string, newStatusVal: string) => {
+  const handleUpdateStatus = async (
+    invoiceId: string,
+    newStatusVal: string,
+  ) => {
     try {
-      const res = await fetch(`${API_BASE}/finance/invoices/${invoiceId}/status`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: newStatusVal }),
-      });
+      const res = await fetch(
+        `${API_BASE}/finance/invoices/${invoiceId}/status`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ status: newStatusVal }),
+        },
+      );
       if (res.ok) {
         setInvoices((prev) =>
-          prev.map((i) => (i.id === invoiceId ? { ...i, status: newStatusVal as InvoiceItem['status'] } : i))
+          prev.map((i) =>
+            i.id === invoiceId
+              ? { ...i, status: newStatusVal as InvoiceItem["status"] }
+              : i,
+          ),
         );
         if (drawerInvoice && drawerInvoice.id === invoiceId) {
-          setDrawerInvoice((prev) => (prev ? { ...prev, status: newStatusVal as InvoiceItem['status'] } : null));
+          setDrawerInvoice((prev) =>
+            prev
+              ? { ...prev, status: newStatusVal as InvoiceItem["status"] }
+              : null,
+          );
         }
       }
     } catch (err) {
-      console.error('Error updating status:', err);
+      console.error("Error updating status:", err);
     }
   };
 
@@ -268,8 +332,8 @@ export const FinanceModule: React.FC = () => {
     setIsSubmittingPayment(true);
     try {
       const res = await fetch(`${API_BASE}/finance/payments`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           invoiceId: selectedInvoice.id,
           amount: parseFloat(payAmount) || 1000,
@@ -279,7 +343,7 @@ export const FinanceModule: React.FC = () => {
       if (res.ok) {
         setShowPayModal(false);
         setSelectedInvoice(null);
-        setPayAmount('');
+        setPayAmount("");
         await fetchFinanceData();
         if (drawerInvoice && drawerInvoice.id === selectedInvoice.id) {
           setDrawerInvoice(null);
@@ -293,30 +357,37 @@ export const FinanceModule: React.FC = () => {
   };
 
   const handleDeleteInvoice = async (invoiceId: string, invNum: string) => {
-    if (!window.confirm(`Are you sure you want to permanently delete Invoice ${invNum}?`)) {
+    if (
+      !window.confirm(
+        `Are you sure you want to permanently delete Invoice ${invNum}?`,
+      )
+    ) {
       return;
     }
     try {
       const res = await fetch(`${API_BASE}/finance/invoices/${invoiceId}`, {
-        method: 'DELETE',
+        method: "DELETE",
       });
       if (res.ok) {
         setInvoices((prev) => prev.filter((i) => i.id !== invoiceId));
-        if (drawerInvoice && drawerInvoice.id === invoiceId) setDrawerInvoice(null);
+        if (drawerInvoice && drawerInvoice.id === invoiceId)
+          setDrawerInvoice(null);
       }
     } catch (err) {
-      console.error('Error deleting invoice:', err);
+      console.error("Error deleting invoice:", err);
     }
   };
 
   const handleCreateInvoice = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmittingCreate(true);
-    const finalOrderRef = isCustomOrderRef ? customOrderRef.trim() : newOrderRef;
+    const finalOrderRef = isCustomOrderRef
+      ? customOrderRef.trim()
+      : newOrderRef;
     try {
       const res = await fetch(`${API_BASE}/finance/invoices`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           invoiceNumber: newInvNumber.trim() || undefined,
           orderNumber: finalOrderRef,
@@ -329,13 +400,13 @@ export const FinanceModule: React.FC = () => {
       });
       if (res.ok) {
         setShowCreateModal(false);
-        setNewInvNumber('');
+        setNewInvNumber("");
         setIsCustomOrderRef(false);
-        setCustomOrderRef('');
+        setCustomOrderRef("");
         await fetchFinanceData();
       }
     } catch (err) {
-      console.error('Error creating invoice:', err);
+      console.error("Error creating invoice:", err);
     } finally {
       setIsSubmittingCreate(false);
     }
@@ -361,19 +432,22 @@ export const FinanceModule: React.FC = () => {
       const paidAmount = parseFloat(editPaid) || 0;
       const balanceDue = Math.max(0, totalAmount - paidAmount);
 
-      const res = await fetch(`${API_BASE}/finance/invoices/${editingInvoice.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          invoiceNumber: editInvNumber,
-          orderNumber: editOrderRef,
-          customerName: editCustomer,
-          totalAmount,
-          paidAmount,
-          dueDate: editDueDate,
-          status: editStatus,
-        }),
-      });
+      const res = await fetch(
+        `${API_BASE}/finance/invoices/${editingInvoice.id}`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            invoiceNumber: editInvNumber,
+            orderNumber: editOrderRef,
+            customerName: editCustomer,
+            totalAmount,
+            paidAmount,
+            dueDate: editDueDate,
+            status: editStatus,
+          }),
+        },
+      );
       if (res.ok) {
         setEditingInvoice(null);
         await fetchFinanceData();
@@ -391,12 +465,12 @@ export const FinanceModule: React.FC = () => {
                   dueDate: editDueDate,
                   status: editStatus,
                 }
-              : null
+              : null,
           );
         }
       }
     } catch (err) {
-      console.error('Error updating invoice:', err);
+      console.error("Error updating invoice:", err);
     } finally {
       setIsUpdating(false);
     }
@@ -404,31 +478,56 @@ export const FinanceModule: React.FC = () => {
 
   const handleSort = (field: InvoiceSortField) => {
     if (sortField === field) {
-      setSortDir((prev) => (prev === 'asc' ? 'desc' : 'asc'));
+      setSortDir((prev) => (prev === "asc" ? "desc" : "asc"));
     } else {
       setSortField(field);
-      setSortDir('asc');
+      setSortDir("asc");
     }
   };
 
   const filterOptions = [
-    { id: 'ALL', label: 'All Invoices', count: invoices.length },
-    { id: 'ISSUED', label: 'Issued / Pending', count: invoices.filter((i) => i.status === 'ISSUED').length },
-    { id: 'PARTIALLY_PAID', label: 'Partially Paid', count: invoices.filter((i) => i.status === 'PARTIALLY_PAID').length },
-    { id: 'PAID', label: 'Settled (Paid)', count: invoices.filter((i) => i.status === 'PAID').length },
+    { id: "ALL", label: "All Invoices", count: invoices.length },
+    {
+      id: "ISSUED",
+      label: "Issued / Pending",
+      count: invoices.filter((i) => i.status === "ISSUED").length,
+    },
+    {
+      id: "PARTIALLY_PAID",
+      label: "Partially Paid",
+      count: invoices.filter((i) => i.status === "PARTIALLY_PAID").length,
+    },
+    {
+      id: "PAID",
+      label: "Settled (Paid)",
+      count: invoices.filter((i) => i.status === "PAID").length,
+    },
   ];
 
   const billFilterOptions = [
-    { id: 'ALL', label: 'All Bills', count: bills.length },
-    { id: 'PENDING', label: 'Pending Payment', count: bills.filter((b) => b.status === 'PENDING').length },
-    { id: 'PARTIALLY_PAID', label: 'Partially Paid', count: bills.filter((b) => b.status === 'PARTIALLY_PAID').length },
-    { id: 'PAID', label: 'Settled (Paid)', count: bills.filter((b) => b.status === 'PAID').length },
+    { id: "ALL", label: "All Bills", count: bills.length },
+    {
+      id: "PENDING",
+      label: "Pending Payment",
+      count: bills.filter((b) => b.status === "PENDING").length,
+    },
+    {
+      id: "PARTIALLY_PAID",
+      label: "Partially Paid",
+      count: bills.filter((b) => b.status === "PARTIALLY_PAID").length,
+    },
+    {
+      id: "PAID",
+      label: "Settled (Paid)",
+      count: bills.filter((b) => b.status === "PAID").length,
+    },
   ];
 
   const filteredInvoices = useMemo(() => {
     return invoices
       .filter((inv) => {
-        const matchesStatus = statusFilter === 'ALL' || inv.status === statusFilter;
+        const matchesStatus =
+          statusFilter === "ALL" || inv.status === statusFilter;
         const q = searchQuery.toLowerCase().trim();
         const matchesSearch =
           !q ||
@@ -441,26 +540,26 @@ export const FinanceModule: React.FC = () => {
       .sort((a, b) => {
         const valA = a[sortField];
         const valB = b[sortField];
-        if (valA < valB) return sortDir === 'asc' ? -1 : 1;
-        if (valA > valB) return sortDir === 'asc' ? 1 : -1;
+        if (valA < valB) return sortDir === "asc" ? -1 : 1;
+        if (valA > valB) return sortDir === "asc" ? 1 : -1;
         return 0;
       });
   }, [invoices, statusFilter, searchQuery, sortField, sortDir]);
 
   const handleExportCsv = () => {
     exportToCsv(
-      'polybridge-invoices',
+      "polybridge-invoices",
       filteredInvoices as unknown as Record<string, unknown>[],
       [
-        { key: 'invoiceNumber', header: 'Invoice #' },
-        { key: 'orderNumber', header: 'Sales Order Ref' },
-        { key: 'customerName', header: 'Customer' },
-        { key: 'totalAmount', header: 'Total Invoiced ($)' },
-        { key: 'paidAmount', header: 'Paid Amount ($)' },
-        { key: 'balanceDue', header: 'Balance Due ($)' },
-        { key: 'status', header: 'Status' },
-        { key: 'dueDate', header: 'Due Date' },
-      ]
+        { key: "invoiceNumber", header: "Invoice #" },
+        { key: "orderNumber", header: "Sales Order Ref" },
+        { key: "customerName", header: "Customer" },
+        { key: "totalAmount", header: "Total Invoiced ($)" },
+        { key: "paidAmount", header: "Paid Amount ($)" },
+        { key: "balanceDue", header: "Balance Due ($)" },
+        { key: "status", header: "Status" },
+        { key: "dueDate", header: "Due Date" },
+      ],
     );
   };
 
@@ -469,14 +568,17 @@ export const FinanceModule: React.FC = () => {
     if (!selectedBill) return;
     setIsSubmittingDisburse(true);
     try {
-      const res = await fetch(`${API_BASE}/finance/supplier-bills/${selectedBill.id}/pay`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          amount: parseFloat(disburseAmount) || selectedBill.balanceDue,
-          bankReference: disburseRef,
-        }),
-      });
+      const res = await fetch(
+        `${API_BASE}/finance/supplier-bills/${selectedBill.id}/pay`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            amount: parseFloat(disburseAmount) || selectedBill.balanceDue,
+            bankReference: disburseRef,
+          }),
+        },
+      );
       if (res.ok) {
         setShowDisburseModal(false);
         setSelectedBill(null);
@@ -486,11 +588,11 @@ export const FinanceModule: React.FC = () => {
         }
       } else {
         const d = await res.json();
-        alert(d.error || 'Failed to record outward disbursement');
+        alert(d.error || "Failed to record outward disbursement");
       }
     } catch (err) {
-      console.error('Error recording outward payment:', err);
-      alert('Network error recording disbursement');
+      console.error("Error recording outward payment:", err);
+      alert("Network error recording disbursement");
     } finally {
       setIsSubmittingDisburse(false);
     }
@@ -503,41 +605,42 @@ export const FinanceModule: React.FC = () => {
           b.billNumber.toLowerCase().includes(billSearchQuery.toLowerCase()) ||
           b.poNumber.toLowerCase().includes(billSearchQuery.toLowerCase()) ||
           b.supplierName.toLowerCase().includes(billSearchQuery.toLowerCase());
-        const matchesStatus = billStatusFilter === 'ALL' || b.status === billStatusFilter;
+        const matchesStatus =
+          billStatusFilter === "ALL" || b.status === billStatusFilter;
         return matchesQuery && matchesStatus;
       })
       .sort((a, b) => {
         const valA = a[billSortField];
         const valB = b[billSortField];
-        if (valA < valB) return billSortDir === 'asc' ? -1 : 1;
-        if (valA > valB) return billSortDir === 'asc' ? 1 : -1;
+        if (valA < valB) return billSortDir === "asc" ? -1 : 1;
+        if (valA > valB) return billSortDir === "asc" ? 1 : -1;
         return 0;
       });
   }, [bills, billSearchQuery, billStatusFilter, billSortField, billSortDir]);
 
   const handleExportBillsCsv = () => {
     exportToCsv(
-      'polybridge-supplier-bills',
+      "polybridge-supplier-bills",
       filteredBills as unknown as Record<string, unknown>[],
       [
-        { key: 'billNumber', header: 'Bill / Invoice #' },
-        { key: 'poNumber', header: 'Purchase Order Ref' },
-        { key: 'supplierName', header: 'Supplier' },
-        { key: 'totalAmount', header: 'Total Billed ($)' },
-        { key: 'paidAmount', header: 'Disbursed ($)' },
-        { key: 'balanceDue', header: 'Balance Due ($)' },
-        { key: 'status', header: 'Status' },
-        { key: 'dueDate', header: 'Due Date' },
-      ]
+        { key: "billNumber", header: "Bill / Invoice #" },
+        { key: "poNumber", header: "Purchase Order Ref" },
+        { key: "supplierName", header: "Supplier" },
+        { key: "totalAmount", header: "Total Billed ($)" },
+        { key: "paidAmount", header: "Disbursed ($)" },
+        { key: "balanceDue", header: "Balance Due ($)" },
+        { key: "status", header: "Status" },
+        { key: "dueDate", header: "Due Date" },
+      ],
     );
   };
 
   const handleSortBill = (field: BillSortField) => {
     if (billSortField === field) {
-      setBillSortDir((prev) => (prev === 'asc' ? 'desc' : 'asc'));
+      setBillSortDir((prev) => (prev === "asc" ? "desc" : "asc"));
     } else {
       setBillSortField(field);
-      setBillSortDir('desc');
+      setBillSortDir("desc");
     }
   };
 
@@ -545,16 +648,27 @@ export const FinanceModule: React.FC = () => {
     if (billSortField !== targetField) {
       return <ArrowUpDown size={12} className="sort-icon-indicator" />;
     }
-    return billSortDir === 'asc' ? (
-      <ArrowUp size={12} className="sort-icon-indicator" color="var(--primary-light)" />
+    return billSortDir === "asc" ? (
+      <ArrowUp
+        size={12}
+        className="sort-icon-indicator"
+        color="var(--primary-light)"
+      />
     ) : (
-      <ArrowDown size={12} className="sort-icon-indicator" color="var(--primary-light)" />
+      <ArrowDown
+        size={12}
+        className="sort-icon-indicator"
+        color="var(--primary-light)"
+      />
     );
   };
 
   const totalInvoiced = invoices.reduce((acc, inv) => acc + inv.totalAmount, 0);
   const totalCollected = invoices.reduce((acc, inv) => acc + inv.paidAmount, 0);
-  const totalOutstanding = invoices.reduce((acc, inv) => acc + inv.balanceDue, 0);
+  const totalOutstanding = invoices.reduce(
+    (acc, inv) => acc + inv.balanceDue,
+    0,
+  );
 
   const totalBilled = bills.reduce((acc, b) => acc + b.totalAmount, 0);
   const totalDisbursed = bills.reduce((acc, b) => acc + b.paidAmount, 0);
@@ -567,31 +681,57 @@ export const FinanceModule: React.FC = () => {
     if (sortField !== targetField) {
       return <ArrowUpDown size={12} className="sort-icon-indicator" />;
     }
-    return sortDir === 'asc' ? (
-      <ArrowUp size={12} className="sort-icon-indicator" color="var(--primary-light)" />
+    return sortDir === "asc" ? (
+      <ArrowUp
+        size={12}
+        className="sort-icon-indicator"
+        color="var(--primary-light)"
+      />
     ) : (
-      <ArrowDown size={12} className="sort-icon-indicator" color="var(--primary-light)" />
+      <ArrowDown
+        size={12}
+        className="sort-icon-indicator"
+        color="var(--primary-light)"
+      />
     );
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
       {/* Module Controls Bar */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
-        <div style={{ display: 'flex', gap: '0.5rem' }}>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          gap: "0.75rem",
+          flexWrap: "wrap",
+        }}
+      >
+        <div style={{ display: "flex", gap: "0.5rem" }}>
           <button
-            onClick={() => setActiveTab('AR_INVOICES')}
-            className={`btn btn-sm ${activeTab === 'AR_INVOICES' ? 'btn-primary' : 'btn-outline'}`}
-            style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontWeight: 600 }}
+            onClick={() => setActiveTab("AR_INVOICES")}
+            className={`btn btn-sm ${activeTab === "AR_INVOICES" ? "btn-primary" : "btn-outline"}`}
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "6px",
+              fontWeight: 600,
+            }}
           >
             <FileText size={14} />
             <span>Customer Invoices (Sales AR)</span>
             <span className="badge badge-subtle">{invoices.length}</span>
           </button>
           <button
-            onClick={() => setActiveTab('AP_BILLS')}
-            className={`btn btn-sm ${activeTab === 'AP_BILLS' ? 'btn-primary' : 'btn-outline'}`}
-            style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontWeight: 600 }}
+            onClick={() => setActiveTab("AP_BILLS")}
+            className={`btn btn-sm ${activeTab === "AP_BILLS" ? "btn-primary" : "btn-outline"}`}
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "6px",
+              fontWeight: 600,
+            }}
           >
             <ShoppingCart size={14} />
             <span>Supplier Bills (Procurement AP)</span>
@@ -599,8 +739,8 @@ export const FinanceModule: React.FC = () => {
           </button>
         </div>
 
-        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-          {activeTab === 'AR_INVOICES' ? (
+        <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
+          {activeTab === "AR_INVOICES" ? (
             <>
               <button
                 onClick={() => setShowCreateModal(true)}
@@ -613,7 +753,8 @@ export const FinanceModule: React.FC = () => {
               {invoices.length > 0 && (
                 <button
                   onClick={() => {
-                    const pending = invoices.find((i) => i.balanceDue > 0) || invoices[0];
+                    const pending =
+                      invoices.find((i) => i.balanceDue > 0) || invoices[0];
                     if (pending) {
                       setSelectedInvoice(pending);
                       setPayAmount(String(pending.balanceDue));
@@ -631,7 +772,8 @@ export const FinanceModule: React.FC = () => {
             bills.length > 0 && (
               <button
                 onClick={() => {
-                  const pending = bills.find((b) => b.balanceDue > 0) || bills[0];
+                  const pending =
+                    bills.find((b) => b.balanceDue > 0) || bills[0];
                   if (pending) {
                     setSelectedBill(pending);
                     setDisburseAmount(String(pending.balanceDue));
@@ -649,65 +791,159 @@ export const FinanceModule: React.FC = () => {
       </div>
 
       {/* KPI Financial Cards (Comprehensive AR & AP Coverage) */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))', gap: '1.25rem' }}>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(230px, 1fr))",
+          gap: "1.25rem",
+        }}
+      >
         {/* Card 1: Export Sales AR */}
-        <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
+        <div
+          className="card"
+          style={{ display: "flex", flexDirection: "column", gap: "0.45rem" }}
+        >
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              color: "var(--text-secondary)",
+              fontSize: "0.85rem",
+            }}
+          >
             <span>Total Export Invoiced (AR)</span>
             <FileText size={16} color="var(--primary-light)" />
           </div>
-          <div style={{ fontSize: '1.65rem', fontWeight: 700, fontFamily: 'var(--font-mono)' }}>
+          <div
+            style={{
+              fontSize: "1.65rem",
+              fontWeight: 700,
+              fontFamily: "var(--font-mono)",
+            }}
+          >
             ${totalInvoiced.toLocaleString()} USD
           </div>
-          <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-            Inward: <strong style={{ color: 'var(--success)' }}>${totalCollected.toLocaleString()}</strong> • Due: <strong style={{ color: 'var(--warning)' }}>${totalOutstanding.toLocaleString()}</strong>
+          <div style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>
+            Inward:{" "}
+            <strong style={{ color: "var(--success)" }}>
+              ${totalCollected.toLocaleString()}
+            </strong>{" "}
+            • Due:{" "}
+            <strong style={{ color: "var(--warning)" }}>
+              ${totalOutstanding.toLocaleString()}
+            </strong>
           </div>
         </div>
 
         {/* Card 2: Procurement Sourcing AP */}
-        <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
+        <div
+          className="card"
+          style={{ display: "flex", flexDirection: "column", gap: "0.45rem" }}
+        >
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              color: "var(--text-secondary)",
+              fontSize: "0.85rem",
+            }}
+          >
             <span>Total Sourcing Billed (AP)</span>
             <ShoppingCart size={16} color="#f59e0b" />
           </div>
-          <div style={{ fontSize: '1.65rem', fontWeight: 700, fontFamily: 'var(--font-mono)', color: '#f59e0b' }}>
+          <div
+            style={{
+              fontSize: "1.65rem",
+              fontWeight: 700,
+              fontFamily: "var(--font-mono)",
+              color: "#f59e0b",
+            }}
+          >
             ${totalBilled.toLocaleString()} USD
           </div>
-          <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-            Disbursed: <strong style={{ color: 'var(--success)' }}>${totalDisbursed.toLocaleString()}</strong> • Due: <strong style={{ color: 'var(--danger)' }}>${totalPayableDue.toLocaleString()}</strong>
+          <div style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>
+            Disbursed:{" "}
+            <strong style={{ color: "var(--success)" }}>
+              ${totalDisbursed.toLocaleString()}
+            </strong>{" "}
+            • Due:{" "}
+            <strong style={{ color: "var(--danger)" }}>
+              ${totalPayableDue.toLocaleString()}
+            </strong>
           </div>
         </div>
 
         {/* Card 3: Net Trade Gross Margin */}
-        <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
+        <div
+          className="card"
+          style={{ display: "flex", flexDirection: "column", gap: "0.45rem" }}
+        >
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              color: "var(--text-secondary)",
+              fontSize: "0.85rem",
+            }}
+          >
             <span>Net Trade Gross Margin</span>
-            <TrendingUp size={16} color={netTradingGrossMargin >= 0 ? 'var(--success)' : 'var(--danger)'} />
+            <TrendingUp
+              size={16}
+              color={
+                netTradingGrossMargin >= 0 ? "var(--success)" : "var(--danger)"
+              }
+            />
           </div>
-          <div style={{ fontSize: '1.65rem', fontWeight: 700, fontFamily: 'var(--font-mono)', color: netTradingGrossMargin >= 0 ? 'var(--success)' : 'var(--danger)' }}>
-            {netTradingGrossMargin >= 0 ? '+' : ''}${netTradingGrossMargin.toLocaleString()} USD
+          <div
+            style={{
+              fontSize: "1.65rem",
+              fontWeight: 700,
+              fontFamily: "var(--font-mono)",
+              color:
+                netTradingGrossMargin >= 0 ? "var(--success)" : "var(--danger)",
+            }}
+          >
+            {netTradingGrossMargin >= 0 ? "+" : ""}$
+            {netTradingGrossMargin.toLocaleString()} USD
           </div>
-          <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+          <div style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>
             Export Sales minus Sourcing Cost
           </div>
         </div>
 
         {/* Card 4: Net Working Capital */}
-        <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
+        <div
+          className="card"
+          style={{ display: "flex", flexDirection: "column", gap: "0.45rem" }}
+        >
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              color: "var(--text-secondary)",
+              fontSize: "0.85rem",
+            }}
+          >
             <span>Net Working Capital</span>
             <Wallet size={16} color="var(--primary-light)" />
           </div>
-          <div style={{ fontSize: '1.65rem', fontWeight: 700, fontFamily: 'var(--font-mono)' }}>
-            {netWorkingCapital >= 0 ? '+' : ''}${netWorkingCapital.toLocaleString()} USD
+          <div
+            style={{
+              fontSize: "1.65rem",
+              fontWeight: 700,
+              fontFamily: "var(--font-mono)",
+            }}
+          >
+            {netWorkingCapital >= 0 ? "+" : ""}$
+            {netWorkingCapital.toLocaleString()} USD
           </div>
-          <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+          <div style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>
             Net Receivables vs Payables
           </div>
         </div>
       </div>
 
-      {activeTab === 'AR_INVOICES' ? (
+      {activeTab === "AR_INVOICES" ? (
         /* Invoices Table Card */
         <div className="table-card">
           {/* Toolbar (density relaxed by default) */}
@@ -727,54 +963,56 @@ export const FinanceModule: React.FC = () => {
               <thead>
                 <tr>
                   <th
-                    className={`th-sortable ${sortField === 'invoiceNumber' ? 'sorted' : ''}`}
-                    onClick={() => handleSort('invoiceNumber')}
+                    className={`th-sortable ${sortField === "invoiceNumber" ? "sorted" : ""}`}
+                    onClick={() => handleSort("invoiceNumber")}
                   >
-                    Invoice # {renderSortIndicator('invoiceNumber')}
+                    Invoice # {renderSortIndicator("invoiceNumber")}
                   </th>
                   <th
-                    className={`th-sortable ${sortField === 'orderNumber' ? 'sorted' : ''}`}
-                    onClick={() => handleSort('orderNumber')}
+                    className={`th-sortable ${sortField === "orderNumber" ? "sorted" : ""}`}
+                    onClick={() => handleSort("orderNumber")}
                   >
-                    Sales Order Ref {renderSortIndicator('orderNumber')}
+                    Sales Order Ref {renderSortIndicator("orderNumber")}
                   </th>
                   <th
-                    className={`th-sortable ${sortField === 'customerName' ? 'sorted' : ''}`}
-                    onClick={() => handleSort('customerName')}
+                    className={`th-sortable ${sortField === "customerName" ? "sorted" : ""}`}
+                    onClick={() => handleSort("customerName")}
                   >
-                    Buyer / Customer {renderSortIndicator('customerName')}
+                    Buyer / Customer {renderSortIndicator("customerName")}
                   </th>
                   <th
-                    className={`th-sortable ${sortField === 'totalAmount' ? 'sorted' : ''}`}
-                    onClick={() => handleSort('totalAmount')}
+                    className={`th-sortable ${sortField === "totalAmount" ? "sorted" : ""}`}
+                    onClick={() => handleSort("totalAmount")}
                   >
-                    Total Invoiced {renderSortIndicator('totalAmount')}
+                    Total Invoiced {renderSortIndicator("totalAmount")}
                   </th>
                   <th
-                    className={`th-sortable ${sortField === 'paidAmount' ? 'sorted' : ''}`}
-                    onClick={() => handleSort('paidAmount')}
+                    className={`th-sortable ${sortField === "paidAmount" ? "sorted" : ""}`}
+                    onClick={() => handleSort("paidAmount")}
                   >
-                    Paid Amount {renderSortIndicator('paidAmount')}
+                    Paid Amount {renderSortIndicator("paidAmount")}
                   </th>
                   <th
-                    className={`th-sortable ${sortField === 'balanceDue' ? 'sorted' : ''}`}
-                    onClick={() => handleSort('balanceDue')}
+                    className={`th-sortable ${sortField === "balanceDue" ? "sorted" : ""}`}
+                    onClick={() => handleSort("balanceDue")}
                   >
-                    Balance Due {renderSortIndicator('balanceDue')}
+                    Balance Due {renderSortIndicator("balanceDue")}
                   </th>
                   <th
-                    className={`th-sortable ${sortField === 'status' ? 'sorted' : ''}`}
-                    onClick={() => handleSort('status')}
+                    className={`th-sortable ${sortField === "status" ? "sorted" : ""}`}
+                    onClick={() => handleSort("status")}
                   >
-                    Status {renderSortIndicator('status')}
+                    Status {renderSortIndicator("status")}
                   </th>
                   <th
-                    className={`th-sortable ${sortField === 'dueDate' ? 'sorted' : ''}`}
-                    onClick={() => handleSort('dueDate')}
+                    className={`th-sortable ${sortField === "dueDate" ? "sorted" : ""}`}
+                    onClick={() => handleSort("dueDate")}
                   >
-                    Due Date {renderSortIndicator('dueDate')}
+                    Due Date {renderSortIndicator("dueDate")}
                   </th>
-                  <th style={{ textAlign: 'right', paddingRight: '1.5rem' }}>Actions</th>
+                  <th style={{ textAlign: "right", paddingRight: "1.5rem" }}>
+                    Actions
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -783,7 +1021,9 @@ export const FinanceModule: React.FC = () => {
                     <td colSpan={9}>
                       <div className="table-loading-state">
                         <div className="table-spinner" />
-                        <div className="table-loading-text">Loading commercial invoices from database...</div>
+                        <div className="table-loading-text">
+                          Loading commercial invoices from database...
+                        </div>
                       </div>
                     </td>
                   </tr>
@@ -794,7 +1034,15 @@ export const FinanceModule: React.FC = () => {
                         <div className="table-empty-state-icon">
                           <DollarSign size={24} />
                         </div>
-                        <h4 style={{ margin: 0, fontSize: '1rem', color: 'var(--text-primary)' }}>No commercial invoices match criteria</h4>
+                        <h4
+                          style={{
+                            margin: 0,
+                            fontSize: "1rem",
+                            color: "var(--text-primary)",
+                          }}
+                        >
+                          No commercial invoices match criteria
+                        </h4>
                       </div>
                     </td>
                   </tr>
@@ -822,14 +1070,23 @@ export const FinanceModule: React.FC = () => {
                               status: inv.status,
                             });
                           }}
-                          style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', cursor: 'pointer', color: 'var(--primary-light)' }}
+                          style={{
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: "4px",
+                            cursor: "pointer",
+                            color: "var(--primary-light)",
+                          }}
                           title="Click to download Commercial Invoice"
                         >
                           <FileText size={11} /> {inv.invoiceNumber}
                           <Download size={10} />
                         </span>
                       </td>
-                      <td className="cell-code" style={{ color: 'var(--text-secondary)' }}>
+                      <td
+                        className="cell-code"
+                        style={{ color: "var(--text-secondary)" }}
+                      >
                         {inv.orderNumber}
                       </td>
                       <td>
@@ -838,14 +1095,20 @@ export const FinanceModule: React.FC = () => {
                       <td className="cell-amount">
                         ${inv.totalAmount.toLocaleString()} {inv.currency}
                       </td>
-                      <td className="cell-amount" style={{ color: 'var(--success)', fontWeight: 700 }}>
+                      <td
+                        className="cell-amount"
+                        style={{ color: "var(--success)", fontWeight: 700 }}
+                      >
                         ${inv.paidAmount.toLocaleString()}
                       </td>
                       <td
                         className="cell-amount"
                         style={{
                           fontWeight: 700,
-                          color: inv.balanceDue > 0 ? 'var(--warning)' : 'var(--text-muted)',
+                          color:
+                            inv.balanceDue > 0
+                              ? "var(--warning)"
+                              : "var(--text-muted)",
                         }}
                       >
                         ${inv.balanceDue.toLocaleString()}
@@ -854,20 +1117,25 @@ export const FinanceModule: React.FC = () => {
                         <div className="status-select-wrapper">
                           <select
                             value={inv.status}
-                            onChange={(e) => handleUpdateStatus(inv.id, e.target.value)}
+                            onChange={(e) =>
+                              handleUpdateStatus(inv.id, e.target.value)
+                            }
                             className={`status-select-pill ${
-                              inv.status === 'PAID'
-                                ? 'badge-success'
-                                : inv.status === 'PARTIALLY_PAID'
-                                ? 'badge-warning'
-                                : inv.status === 'CANCELLED' || inv.status === 'OVERDUE'
-                                ? 'badge-danger'
-                                : 'badge-primary'
+                              inv.status === "PAID"
+                                ? "badge-success"
+                                : inv.status === "PARTIALLY_PAID"
+                                  ? "badge-warning"
+                                  : inv.status === "CANCELLED" ||
+                                      inv.status === "OVERDUE"
+                                    ? "badge-danger"
+                                    : "badge-primary"
                             }`}
                           >
                             <option value="DRAFT">DRAFT</option>
                             <option value="ISSUED">ISSUED</option>
-                            <option value="PARTIALLY_PAID">PARTIALLY_PAID</option>
+                            <option value="PARTIALLY_PAID">
+                              PARTIALLY_PAID
+                            </option>
                             <option value="PAID">PAID</option>
                             <option value="OVERDUE">OVERDUE</option>
                             <option value="CANCELLED">CANCELLED</option>
@@ -875,10 +1143,27 @@ export const FinanceModule: React.FC = () => {
                         </div>
                       </td>
                       <td>
-                        <span style={{ fontSize: '0.825rem', color: 'var(--text-muted)' }}>{inv.dueDate}</span>
+                        <span
+                          style={{
+                            fontSize: "0.825rem",
+                            color: "var(--text-muted)",
+                          }}
+                        >
+                          {inv.dueDate}
+                        </span>
                       </td>
-                      <td style={{ textAlign: 'right', paddingRight: '1.5rem' }} onClick={(e) => e.stopPropagation()}>
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '0.4rem' }}>
+                      <td
+                        style={{ textAlign: "right", paddingRight: "1.5rem" }}
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <div
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "flex-end",
+                            gap: "0.4rem",
+                          }}
+                        >
                           {inv.balanceDue > 0 && (
                             <button
                               onClick={() => {
@@ -894,18 +1179,20 @@ export const FinanceModule: React.FC = () => {
                             </button>
                           )}
                           <button
-                            onClick={() => downloadCommercialInvoice({
-                              invoiceNumber: inv.invoiceNumber,
-                              orderNumber: inv.orderNumber,
-                              customerName: inv.customerName,
-                              totalAmount: inv.totalAmount,
-                              paidAmount: inv.paidAmount,
-                              balanceDue: inv.balanceDue,
-                              currency: inv.currency,
-                              issueDate: inv.issueDate,
-                              dueDate: inv.dueDate,
-                              status: inv.status,
-                            })}
+                            onClick={() =>
+                              downloadCommercialInvoice({
+                                invoiceNumber: inv.invoiceNumber,
+                                orderNumber: inv.orderNumber,
+                                customerName: inv.customerName,
+                                totalAmount: inv.totalAmount,
+                                paidAmount: inv.paidAmount,
+                                balanceDue: inv.balanceDue,
+                                currency: inv.currency,
+                                issueDate: inv.issueDate,
+                                dueDate: inv.dueDate,
+                                status: inv.status,
+                              })
+                            }
                             className="btn btn-xs btn-outline"
                             title="Download Commercial Invoice"
                           >
@@ -920,10 +1207,15 @@ export const FinanceModule: React.FC = () => {
                             <span>Edit</span>
                           </button>
                           <button
-                            onClick={() => handleDeleteInvoice(inv.id, inv.invoiceNumber)}
+                            onClick={() =>
+                              handleDeleteInvoice(inv.id, inv.invoiceNumber)
+                            }
                             className="btn btn-xs btn-outline"
                             title="Delete Invoice"
-                            style={{ color: 'var(--danger)', borderColor: 'rgba(239, 68, 68, 0.25)' }}
+                            style={{
+                              color: "var(--danger)",
+                              borderColor: "rgba(239, 68, 68, 0.25)",
+                            }}
                           >
                             <Trash2 size={12} />
                           </button>
@@ -945,48 +1237,66 @@ export const FinanceModule: React.FC = () => {
 
           <div className="table-footer">
             <span>Showing {filteredInvoices.length} commercial invoices</span>
-            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-              Automated balance calculation & currency reconciliation. Edit or update status inline.
+            <span style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>
+              Automated balance calculation & currency reconciliation. Edit or
+              update status inline.
             </span>
           </div>
         </div>
       ) : (
         /* Supplier Bills Table View (AP) */
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
           {unbilledPos.length > 0 && (
-            <div style={{
-              background: 'rgba(245, 158, 11, 0.1)',
-              border: '1px solid rgba(245, 158, 11, 0.3)',
-              borderRadius: 'var(--radius-md)',
-              padding: '0.85rem 1.25rem',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              flexWrap: 'wrap',
-              gap: '0.75rem',
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+            <div
+              style={{
+                background: "rgba(245, 158, 11, 0.1)",
+                border: "1px solid rgba(245, 158, 11, 0.3)",
+                borderRadius: "var(--radius-md)",
+                padding: "0.85rem 1.25rem",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                flexWrap: "wrap",
+                gap: "0.75rem",
+              }}
+            >
+              <div
+                style={{ display: "flex", alignItems: "center", gap: "0.6rem" }}
+              >
                 <ShoppingCart size={18} color="#f59e0b" />
                 <div>
-                  <strong style={{ color: 'var(--text-primary)', fontSize: '0.9rem' }}>
-                    {unbilledPos.length} Completed Purchase Order(s) Awaiting Supplier Bill Generation
+                  <strong
+                    style={{ color: "var(--text-primary)", fontSize: "0.9rem" }}
+                  >
+                    {unbilledPos.length} Completed Purchase Order(s) Awaiting
+                    Supplier Bill Generation
                   </strong>
-                  <div style={{ fontSize: '0.775rem', color: 'var(--text-muted)' }}>
-                    Procurement POs marked COMPLETED can be converted into Supplier Bills (AP) to reflect in Accounts Payable.
+                  <div
+                    style={{ fontSize: "0.775rem", color: "var(--text-muted)" }}
+                  >
+                    Procurement POs marked COMPLETED can be converted into
+                    Supplier Bills (AP) to reflect in Accounts Payable.
                   </div>
                 </div>
               </div>
-              <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+              <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
                 {unbilledPos.map((po) => (
                   <button
                     key={po.id}
                     onClick={() => handleQuickGenerateBill(po)}
                     disabled={isGeneratingPoBill}
                     className="btn btn-xs btn-primary"
-                    style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "4px",
+                    }}
                   >
                     <Plus size={11} />
-                    <span>Generate Bill: {po.poNumber} (${po.totalCost.toLocaleString()} {po.currency})</span>
+                    <span>
+                      Generate Bill: {po.poNumber} ($
+                      {po.totalCost.toLocaleString()} {po.currency})
+                    </span>
                   </button>
                 ))}
               </div>
@@ -1009,54 +1319,57 @@ export const FinanceModule: React.FC = () => {
                 <thead>
                   <tr>
                     <th
-                      className={`th-sortable ${billSortField === 'billNumber' ? 'sorted' : ''}`}
-                      onClick={() => handleSortBill('billNumber')}
+                      className={`th-sortable ${billSortField === "billNumber" ? "sorted" : ""}`}
+                      onClick={() => handleSortBill("billNumber")}
                     >
-                      Bill / Invoice # {renderBillSortIndicator('billNumber')}
+                      Bill / Invoice # {renderBillSortIndicator("billNumber")}
                     </th>
                     <th
-                      className={`th-sortable ${billSortField === 'poNumber' ? 'sorted' : ''}`}
-                      onClick={() => handleSortBill('poNumber')}
+                      className={`th-sortable ${billSortField === "poNumber" ? "sorted" : ""}`}
+                      onClick={() => handleSortBill("poNumber")}
                     >
-                      Purchase Order Ref {renderBillSortIndicator('poNumber')}
+                      Purchase Order Ref {renderBillSortIndicator("poNumber")}
                     </th>
                     <th
-                      className={`th-sortable ${billSortField === 'supplierName' ? 'sorted' : ''}`}
-                      onClick={() => handleSortBill('supplierName')}
+                      className={`th-sortable ${billSortField === "supplierName" ? "sorted" : ""}`}
+                      onClick={() => handleSortBill("supplierName")}
                     >
-                      Supplier / Sourcing Partner {renderBillSortIndicator('supplierName')}
+                      Supplier / Sourcing Partner{" "}
+                      {renderBillSortIndicator("supplierName")}
                     </th>
                     <th
-                      className={`th-sortable ${billSortField === 'totalAmount' ? 'sorted' : ''}`}
-                      onClick={() => handleSortBill('totalAmount')}
+                      className={`th-sortable ${billSortField === "totalAmount" ? "sorted" : ""}`}
+                      onClick={() => handleSortBill("totalAmount")}
                     >
-                      Total Billed {renderBillSortIndicator('totalAmount')}
+                      Total Billed {renderBillSortIndicator("totalAmount")}
                     </th>
                     <th
-                      className={`th-sortable ${billSortField === 'paidAmount' ? 'sorted' : ''}`}
-                      onClick={() => handleSortBill('paidAmount')}
+                      className={`th-sortable ${billSortField === "paidAmount" ? "sorted" : ""}`}
+                      onClick={() => handleSortBill("paidAmount")}
                     >
-                      Disbursed {renderBillSortIndicator('paidAmount')}
+                      Disbursed {renderBillSortIndicator("paidAmount")}
                     </th>
                     <th
-                      className={`th-sortable ${billSortField === 'balanceDue' ? 'sorted' : ''}`}
-                      onClick={() => handleSortBill('balanceDue')}
+                      className={`th-sortable ${billSortField === "balanceDue" ? "sorted" : ""}`}
+                      onClick={() => handleSortBill("balanceDue")}
                     >
-                      Balance Due {renderBillSortIndicator('balanceDue')}
+                      Balance Due {renderBillSortIndicator("balanceDue")}
                     </th>
                     <th
-                      className={`th-sortable ${billSortField === 'status' ? 'sorted' : ''}`}
-                      onClick={() => handleSortBill('status')}
+                      className={`th-sortable ${billSortField === "status" ? "sorted" : ""}`}
+                      onClick={() => handleSortBill("status")}
                     >
-                      Status {renderBillSortIndicator('status')}
+                      Status {renderBillSortIndicator("status")}
                     </th>
                     <th
-                      className={`th-sortable ${billSortField === 'dueDate' ? 'sorted' : ''}`}
-                      onClick={() => handleSortBill('dueDate')}
+                      className={`th-sortable ${billSortField === "dueDate" ? "sorted" : ""}`}
+                      onClick={() => handleSortBill("dueDate")}
                     >
-                      Due Date {renderBillSortIndicator('dueDate')}
+                      Due Date {renderBillSortIndicator("dueDate")}
                     </th>
-                    <th style={{ textAlign: 'right', paddingRight: '1.5rem' }}>Actions</th>
+                    <th style={{ textAlign: "right", paddingRight: "1.5rem" }}>
+                      Actions
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
@@ -1065,7 +1378,9 @@ export const FinanceModule: React.FC = () => {
                       <td colSpan={9}>
                         <div className="table-loading-state">
                           <div className="table-spinner" />
-                          <div className="table-loading-text">Loading supplier procurement bills...</div>
+                          <div className="table-loading-text">
+                            Loading supplier procurement bills...
+                          </div>
                         </div>
                       </td>
                     </tr>
@@ -1076,9 +1391,24 @@ export const FinanceModule: React.FC = () => {
                           <div className="table-empty-state-icon">
                             <ShoppingCart size={24} />
                           </div>
-                          <h4 style={{ margin: 0, fontSize: '1rem', color: 'var(--text-primary)' }}>No supplier bills recorded yet</h4>
-                          <p style={{ margin: '0.25rem 0 0', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-                            When a Purchase Order is marked COMPLETED in Procurement, click "Generate Bill" to create a bill.
+                          <h4
+                            style={{
+                              margin: 0,
+                              fontSize: "1rem",
+                              color: "var(--text-primary)",
+                            }}
+                          >
+                            No supplier bills recorded yet
+                          </h4>
+                          <p
+                            style={{
+                              margin: "0.25rem 0 0",
+                              fontSize: "0.85rem",
+                              color: "var(--text-muted)",
+                            }}
+                          >
+                            When a Purchase Order is marked COMPLETED in
+                            Procurement, click "Generate Bill" to create a bill.
                           </p>
                         </div>
                       </td>
@@ -1102,19 +1432,28 @@ export const FinanceModule: React.FC = () => {
                                 paidAmount: b.paidAmount,
                                 balanceDue: b.balanceDue,
                                 currency: b.currency,
-                                type: 'SUPPLIER_BILL',
+                                type: "SUPPLIER_BILL",
                                 status: b.status,
                                 dueDate: b.dueDate,
                               });
                             }}
-                            style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', cursor: 'pointer', color: '#f59e0b' }}
+                            style={{
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: "4px",
+                              cursor: "pointer",
+                              color: "#f59e0b",
+                            }}
                             title="Click to download Supplier Bill / Purchase Invoice"
                           >
                             <FileText size={11} /> {b.billNumber}
                             <Download size={10} />
                           </span>
                         </td>
-                        <td className="cell-code" style={{ color: 'var(--text-secondary)' }}>
+                        <td
+                          className="cell-code"
+                          style={{ color: "var(--text-secondary)" }}
+                        >
                           {b.poNumber}
                         </td>
                         <td>
@@ -1123,14 +1462,20 @@ export const FinanceModule: React.FC = () => {
                         <td className="cell-amount">
                           ${b.totalAmount.toLocaleString()} {b.currency}
                         </td>
-                        <td className="cell-amount" style={{ color: 'var(--success)', fontWeight: 700 }}>
+                        <td
+                          className="cell-amount"
+                          style={{ color: "var(--success)", fontWeight: 700 }}
+                        >
                           ${b.paidAmount.toLocaleString()}
                         </td>
                         <td
                           className="cell-amount"
                           style={{
                             fontWeight: 700,
-                            color: b.balanceDue > 0 ? 'var(--danger)' : 'var(--text-muted)',
+                            color:
+                              b.balanceDue > 0
+                                ? "var(--danger)"
+                                : "var(--text-muted)",
                           }}
                         >
                           ${b.balanceDue.toLocaleString()}
@@ -1138,21 +1483,38 @@ export const FinanceModule: React.FC = () => {
                         <td onClick={(e) => e.stopPropagation()}>
                           <span
                             className={`badge ${
-                              b.status === 'PAID'
-                                ? 'badge-success'
-                                : b.status === 'PARTIALLY_PAID'
-                                ? 'badge-warning'
-                                : 'badge-outline'
+                              b.status === "PAID"
+                                ? "badge-success"
+                                : b.status === "PARTIALLY_PAID"
+                                  ? "badge-warning"
+                                  : "badge-outline"
                             }`}
                           >
                             {b.status}
                           </span>
                         </td>
                         <td>
-                          <span style={{ fontSize: '0.825rem', color: 'var(--text-muted)' }}>{b.dueDate}</span>
+                          <span
+                            style={{
+                              fontSize: "0.825rem",
+                              color: "var(--text-muted)",
+                            }}
+                          >
+                            {b.dueDate}
+                          </span>
                         </td>
-                        <td style={{ textAlign: 'right', paddingRight: '1.5rem' }} onClick={(e) => e.stopPropagation()}>
-                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '0.4rem' }}>
+                        <td
+                          style={{ textAlign: "right", paddingRight: "1.5rem" }}
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <div
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "flex-end",
+                              gap: "0.4rem",
+                            }}
+                          >
                             {b.balanceDue > 0 && (
                               <button
                                 onClick={() => {
@@ -1168,18 +1530,20 @@ export const FinanceModule: React.FC = () => {
                               </button>
                             )}
                             <button
-                              onClick={() => downloadCommercialInvoice({
-                                invoiceNumber: b.billNumber,
-                                orderNumber: b.poNumber,
-                                supplierName: b.supplierName,
-                                totalAmount: b.totalAmount,
-                                paidAmount: b.paidAmount,
-                                balanceDue: b.balanceDue,
-                                currency: b.currency,
-                                type: 'SUPPLIER_BILL',
-                                status: b.status,
-                                dueDate: b.dueDate,
-                              })}
+                              onClick={() =>
+                                downloadCommercialInvoice({
+                                  invoiceNumber: b.billNumber,
+                                  orderNumber: b.poNumber,
+                                  supplierName: b.supplierName,
+                                  totalAmount: b.totalAmount,
+                                  paidAmount: b.paidAmount,
+                                  balanceDue: b.balanceDue,
+                                  currency: b.currency,
+                                  type: "SUPPLIER_BILL",
+                                  status: b.status,
+                                  dueDate: b.dueDate,
+                                })
+                              }
                               className="btn btn-xs btn-outline"
                               title="Download Supplier Bill"
                             >
@@ -1202,9 +1566,12 @@ export const FinanceModule: React.FC = () => {
             </div>
 
             <div className="table-footer">
-              <span>Showing {filteredBills.length} supplier procurement bills</span>
-              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                Accounts Payable tracking for verified supplier commitments & outward disbursements.
+              <span>
+                Showing {filteredBills.length} supplier procurement bills
+              </span>
+              <span style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>
+                Accounts Payable tracking for verified supplier commitments &
+                outward disbursements.
               </span>
             </div>
           </div>
@@ -1215,17 +1582,17 @@ export const FinanceModule: React.FC = () => {
       <DetailDrawer
         isOpen={Boolean(drawerInvoice)}
         onClose={() => setDrawerInvoice(null)}
-        title={drawerInvoice?.invoiceNumber || 'Invoice Reconciliation'}
+        title={drawerInvoice?.invoiceNumber || "Invoice Reconciliation"}
         subtitle={`Customer: ${drawerInvoice?.customerName} • Order: ${drawerInvoice?.orderNumber}`}
         badge={
           drawerInvoice ? (
             <span
               className={`badge ${
-                drawerInvoice.status === 'PAID'
-                  ? 'badge-success'
-                  : drawerInvoice.status === 'PARTIALLY_PAID'
-                  ? 'badge-warning'
-                  : 'badge-danger'
+                drawerInvoice.status === "PAID"
+                  ? "badge-success"
+                  : drawerInvoice.status === "PARTIALLY_PAID"
+                    ? "badge-warning"
+                    : "badge-danger"
               }`}
             >
               <span className="badge-dot" />
@@ -1235,20 +1602,29 @@ export const FinanceModule: React.FC = () => {
         }
         footer={
           drawerInvoice ? (
-            <div style={{ display: 'flex', gap: '0.5rem', width: '100%', justifyContent: 'flex-end' }}>
+            <div
+              style={{
+                display: "flex",
+                gap: "0.5rem",
+                width: "100%",
+                justifyContent: "flex-end",
+              }}
+            >
               <button
-                onClick={() => downloadCommercialInvoice({
-                  invoiceNumber: drawerInvoice.invoiceNumber,
-                  orderNumber: drawerInvoice.orderNumber,
-                  customerName: drawerInvoice.customerName,
-                  totalAmount: drawerInvoice.totalAmount,
-                  paidAmount: drawerInvoice.paidAmount,
-                  balanceDue: drawerInvoice.balanceDue,
-                  currency: drawerInvoice.currency,
-                  issueDate: drawerInvoice.issueDate,
-                  dueDate: drawerInvoice.dueDate,
-                  status: drawerInvoice.status,
-                })}
+                onClick={() =>
+                  downloadCommercialInvoice({
+                    invoiceNumber: drawerInvoice.invoiceNumber,
+                    orderNumber: drawerInvoice.orderNumber,
+                    customerName: drawerInvoice.customerName,
+                    totalAmount: drawerInvoice.totalAmount,
+                    paidAmount: drawerInvoice.paidAmount,
+                    balanceDue: drawerInvoice.balanceDue,
+                    currency: drawerInvoice.currency,
+                    issueDate: drawerInvoice.issueDate,
+                    dueDate: drawerInvoice.dueDate,
+                    status: drawerInvoice.status,
+                  })
+                }
                 className="btn btn-primary"
               >
                 <Download size={15} />
@@ -1279,9 +1655,17 @@ export const FinanceModule: React.FC = () => {
                 <span>Edit Invoice</span>
               </button>
               <button
-                onClick={() => handleDeleteInvoice(drawerInvoice.id, drawerInvoice.invoiceNumber)}
+                onClick={() =>
+                  handleDeleteInvoice(
+                    drawerInvoice.id,
+                    drawerInvoice.invoiceNumber,
+                  )
+                }
                 className="btn btn-outline"
-                style={{ color: 'var(--danger)', borderColor: 'rgba(239, 68, 68, 0.3)' }}
+                style={{
+                  color: "var(--danger)",
+                  borderColor: "rgba(239, 68, 68, 0.3)",
+                }}
               >
                 <Trash2 size={15} />
                 <span>Delete</span>
@@ -1299,13 +1683,20 @@ export const FinanceModule: React.FC = () => {
             <div className="drawer-grid">
               <div className="drawer-stat">
                 <span className="drawer-stat-label">Total Invoice Value</span>
-                <span className="drawer-stat-value cell-amount" style={{ fontSize: '1.25rem' }}>
-                  ${drawerInvoice.totalAmount.toLocaleString()} {drawerInvoice.currency}
+                <span
+                  className="drawer-stat-value cell-amount"
+                  style={{ fontSize: "1.25rem" }}
+                >
+                  ${drawerInvoice.totalAmount.toLocaleString()}{" "}
+                  {drawerInvoice.currency}
                 </span>
               </div>
               <div className="drawer-stat">
                 <span className="drawer-stat-label">Remitted (Paid)</span>
-                <span className="drawer-stat-value cell-amount" style={{ fontSize: '1.25rem', color: 'var(--success)' }}>
+                <span
+                  className="drawer-stat-value cell-amount"
+                  style={{ fontSize: "1.25rem", color: "var(--success)" }}
+                >
                   ${drawerInvoice.paidAmount.toLocaleString()} USD
                 </span>
               </div>
@@ -1314,32 +1705,42 @@ export const FinanceModule: React.FC = () => {
                 <span
                   className="drawer-stat-value cell-amount"
                   style={{
-                    fontSize: '1.25rem',
-                    color: drawerInvoice.balanceDue > 0 ? 'var(--warning)' : 'var(--text-muted)',
+                    fontSize: "1.25rem",
+                    color:
+                      drawerInvoice.balanceDue > 0
+                        ? "var(--warning)"
+                        : "var(--text-muted)",
                   }}
                 >
                   ${drawerInvoice.balanceDue.toLocaleString()} USD
                 </span>
               </div>
               <div className="drawer-stat">
-                <span className="drawer-stat-label">Payment Maturity (Due Date)</span>
-                <span className="drawer-stat-value" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <span className="drawer-stat-label">
+                  Payment Maturity (Due Date)
+                </span>
+                <span
+                  className="drawer-stat-value"
+                  style={{ display: "flex", alignItems: "center", gap: "4px" }}
+                >
                   <Calendar size={13} color="var(--text-muted)" />
                   {drawerInvoice.dueDate}
                 </span>
               </div>
-              <div className="drawer-stat" style={{ gridColumn: 'span 2' }}>
+              <div className="drawer-stat" style={{ gridColumn: "span 2" }}>
                 <span className="drawer-stat-label">Update Invoice Status</span>
-                <div style={{ marginTop: '0.4rem' }}>
+                <div style={{ marginTop: "0.4rem" }}>
                   <select
                     value={drawerInvoice.status}
-                    onChange={(e) => handleUpdateStatus(drawerInvoice.id, e.target.value)}
+                    onChange={(e) =>
+                      handleUpdateStatus(drawerInvoice.id, e.target.value)
+                    }
                     style={{
-                      padding: '0.45rem 0.75rem',
-                      borderRadius: 'var(--radius-sm)',
-                      background: 'var(--bg-secondary)',
-                      color: 'var(--text-primary)',
-                      border: '1px solid var(--border-medium)',
+                      padding: "0.45rem 0.75rem",
+                      borderRadius: "var(--radius-sm)",
+                      background: "var(--bg-secondary)",
+                      color: "var(--text-primary)",
+                      border: "1px solid var(--border-medium)",
                       fontWeight: 600,
                     }}
                   >
@@ -1361,17 +1762,17 @@ export const FinanceModule: React.FC = () => {
       <DetailDrawer
         isOpen={Boolean(drawerBill)}
         onClose={() => setDrawerBill(null)}
-        title={drawerBill?.billNumber || 'Supplier Bill Reconciliation'}
+        title={drawerBill?.billNumber || "Supplier Bill Reconciliation"}
         subtitle={`Supplier: ${drawerBill?.supplierName} • Purchase Order: ${drawerBill?.poNumber}`}
         badge={
           drawerBill ? (
             <span
               className={`badge ${
-                drawerBill.status === 'PAID'
-                  ? 'badge-success'
-                  : drawerBill.status === 'PARTIALLY_PAID'
-                  ? 'badge-warning'
-                  : 'badge-outline'
+                drawerBill.status === "PAID"
+                  ? "badge-success"
+                  : drawerBill.status === "PARTIALLY_PAID"
+                    ? "badge-warning"
+                    : "badge-outline"
               }`}
             >
               <span className="badge-dot" />
@@ -1381,20 +1782,29 @@ export const FinanceModule: React.FC = () => {
         }
         footer={
           drawerBill ? (
-            <div style={{ display: 'flex', gap: '0.5rem', width: '100%', justifyContent: 'flex-end' }}>
+            <div
+              style={{
+                display: "flex",
+                gap: "0.5rem",
+                width: "100%",
+                justifyContent: "flex-end",
+              }}
+            >
               <button
-                onClick={() => downloadCommercialInvoice({
-                  invoiceNumber: drawerBill.billNumber,
-                  orderNumber: drawerBill.poNumber,
-                  supplierName: drawerBill.supplierName,
-                  totalAmount: drawerBill.totalAmount,
-                  paidAmount: drawerBill.paidAmount,
-                  balanceDue: drawerBill.balanceDue,
-                  currency: drawerBill.currency,
-                  type: 'SUPPLIER_BILL',
-                  status: drawerBill.status,
-                  dueDate: drawerBill.dueDate,
-                })}
+                onClick={() =>
+                  downloadCommercialInvoice({
+                    invoiceNumber: drawerBill.billNumber,
+                    orderNumber: drawerBill.poNumber,
+                    supplierName: drawerBill.supplierName,
+                    totalAmount: drawerBill.totalAmount,
+                    paidAmount: drawerBill.paidAmount,
+                    balanceDue: drawerBill.balanceDue,
+                    currency: drawerBill.currency,
+                    type: "SUPPLIER_BILL",
+                    status: drawerBill.status,
+                    dueDate: drawerBill.dueDate,
+                  })
+                }
                 className="btn btn-primary"
               >
                 <Download size={15} />
@@ -1426,38 +1836,63 @@ export const FinanceModule: React.FC = () => {
             <div className="drawer-grid">
               <div className="drawer-stat">
                 <span className="drawer-stat-label">Total Sourcing Cost</span>
-                <span className="drawer-stat-value cell-amount" style={{ fontSize: '1.25rem' }}>
-                  ${drawerBill.totalAmount.toLocaleString()} {drawerBill.currency}
+                <span
+                  className="drawer-stat-value cell-amount"
+                  style={{ fontSize: "1.25rem" }}
+                >
+                  ${drawerBill.totalAmount.toLocaleString()}{" "}
+                  {drawerBill.currency}
                 </span>
               </div>
               <div className="drawer-stat">
-                <span className="drawer-stat-label">Disbursed (Paid to Supplier)</span>
-                <span className="drawer-stat-value cell-amount" style={{ fontSize: '1.25rem', color: 'var(--success)' }}>
+                <span className="drawer-stat-label">
+                  Disbursed (Paid to Supplier)
+                </span>
+                <span
+                  className="drawer-stat-value cell-amount"
+                  style={{ fontSize: "1.25rem", color: "var(--success)" }}
+                >
                   ${drawerBill.paidAmount.toLocaleString()} USD
                 </span>
               </div>
               <div className="drawer-stat">
-                <span className="drawer-stat-label">Outstanding Payable Balance</span>
+                <span className="drawer-stat-label">
+                  Outstanding Payable Balance
+                </span>
                 <span
                   className="drawer-stat-value cell-amount"
                   style={{
-                    fontSize: '1.25rem',
-                    color: drawerBill.balanceDue > 0 ? 'var(--danger)' : 'var(--text-muted)',
+                    fontSize: "1.25rem",
+                    color:
+                      drawerBill.balanceDue > 0
+                        ? "var(--danger)"
+                        : "var(--text-muted)",
                   }}
                 >
                   ${drawerBill.balanceDue.toLocaleString()} USD
                 </span>
               </div>
               <div className="drawer-stat">
-                <span className="drawer-stat-label">Credit Maturity (Due Date)</span>
-                <span className="drawer-stat-value" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <span className="drawer-stat-label">
+                  Credit Maturity (Due Date)
+                </span>
+                <span
+                  className="drawer-stat-value"
+                  style={{ display: "flex", alignItems: "center", gap: "4px" }}
+                >
                   <Calendar size={13} color="var(--text-muted)" />
                   {drawerBill.dueDate}
                 </span>
               </div>
-              <div className="drawer-stat" style={{ gridColumn: 'span 2' }}>
+              <div className="drawer-stat" style={{ gridColumn: "span 2" }}>
                 <span className="drawer-stat-label">Linked Procurement PO</span>
-                <span className="drawer-stat-value" style={{ fontFamily: 'var(--font-mono)', color: 'var(--text-secondary)' }}>
+                <span
+                  className="drawer-stat-value"
+                  style={{
+                    fontFamily: "var(--font-mono)",
+                    color: "var(--text-secondary)",
+                  }}
+                >
                   {drawerBill.poNumber} — Supplier: {drawerBill.supplierName}
                 </span>
               </div>
@@ -1468,59 +1903,131 @@ export const FinanceModule: React.FC = () => {
 
       {/* Create Commercial Invoice Modal */}
       {showCreateModal && (
-        <div style={{
-          position: 'fixed',
-          inset: 0,
-          background: 'rgba(0,0,0,0.65)',
-          backdropFilter: 'blur(4px)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 1000,
-          padding: '1rem',
-        }}>
-          <div className="card" style={{ maxWidth: '540px', width: '100%' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', borderBottom: '1px solid var(--border-subtle)', paddingBottom: '0.75rem' }}>
-              <h3 style={{ fontSize: '1.15rem', fontWeight: 700, margin: 0 }}>Create Commercial Invoice</h3>
-              <button className="btn btn-sm btn-ghost" onClick={() => setShowCreateModal(false)}>✕</button>
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(0,0,0,0.65)",
+            backdropFilter: "blur(4px)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 1000,
+            padding: "1rem",
+          }}
+        >
+          <div className="card" style={{ maxWidth: "540px", width: "100%" }}>
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                marginBottom: "1.25rem",
+                borderBottom: "1px solid var(--border-subtle)",
+                paddingBottom: "0.75rem",
+              }}
+            >
+              <h3 style={{ fontSize: "1.15rem", fontWeight: 700, margin: 0 }}>
+                Create Commercial Invoice
+              </h3>
+              <button
+                className="btn btn-sm btn-ghost"
+                onClick={() => setShowCreateModal(false)}
+              >
+                ✕
+              </button>
             </div>
 
-            <form onSubmit={handleCreateInvoice} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+            <form
+              onSubmit={handleCreateInvoice}
+              style={{ display: "flex", flexDirection: "column", gap: "1rem" }}
+            >
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "1fr 1fr",
+                  gap: "1rem",
+                }}
+              >
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, marginBottom: '0.35rem', color: 'var(--text-secondary)' }}>Invoice # (Optional)</label>
+                  <label
+                    style={{
+                      display: "block",
+                      fontSize: "0.8rem",
+                      fontWeight: 600,
+                      marginBottom: "0.35rem",
+                      color: "var(--text-secondary)",
+                    }}
+                  >
+                    Invoice # (Optional)
+                  </label>
                   <input
                     type="text"
                     placeholder="Auto-generated if empty"
                     value={newInvNumber}
                     onChange={(e) => setNewInvNumber(e.target.value)}
-                    style={{ width: '100%', padding: '0.55rem', background: 'var(--bg-secondary)', color: 'var(--text-primary)', border: '1px solid var(--border-medium)', borderRadius: 'var(--radius-md)' }}
+                    style={{
+                      width: "100%",
+                      padding: "0.55rem",
+                      background: "var(--bg-secondary)",
+                      color: "var(--text-primary)",
+                      border: "1px solid var(--border-medium)",
+                      borderRadius: "var(--radius-md)",
+                    }}
                   />
                 </div>
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, marginBottom: '0.35rem', color: 'var(--text-secondary)' }}>
+                  <label
+                    style={{
+                      display: "block",
+                      fontSize: "0.8rem",
+                      fontWeight: 600,
+                      marginBottom: "0.35rem",
+                      color: "var(--text-secondary)",
+                    }}
+                  >
                     Sales Order Ref *
                   </label>
                   <select
-                    value={isCustomOrderRef ? '__OTHER__' : newOrderRef}
-                    onChange={(e) => handleSelectOrderForInvoice(e.target.value)}
-                    style={{ width: '100%', padding: '0.55rem', background: 'var(--bg-secondary)', color: 'var(--text-primary)', border: '1px solid var(--border-medium)', borderRadius: 'var(--radius-md)' }}
+                    value={isCustomOrderRef ? "__OTHER__" : newOrderRef}
+                    onChange={(e) =>
+                      handleSelectOrderForInvoice(e.target.value)
+                    }
+                    style={{
+                      width: "100%",
+                      padding: "0.55rem",
+                      background: "var(--bg-secondary)",
+                      color: "var(--text-primary)",
+                      border: "1px solid var(--border-medium)",
+                      borderRadius: "var(--radius-md)",
+                    }}
                   >
                     <optgroup label="Confirmed Sales Orders">
                       {availableOrders.map((so) => (
                         <option key={so.orderNumber} value={so.orderNumber}>
-                          {so.orderNumber} — {so.customerName} (${so.totalAmount.toLocaleString()})
+                          {so.orderNumber} — {so.customerName} ($
+                          {so.totalAmount.toLocaleString()})
                         </option>
                       ))}
                     </optgroup>
-                    <option value="__OTHER__">✨ + Other (Enter Reference Manually)</option>
+                    <option value="__OTHER__">
+                      ✨ + Other (Enter Reference Manually)
+                    </option>
                   </select>
                 </div>
               </div>
 
               {isCustomOrderRef && (
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, marginBottom: '0.35rem', color: 'var(--primary-light)' }}>
+                  <label
+                    style={{
+                      display: "block",
+                      fontSize: "0.8rem",
+                      fontWeight: 600,
+                      marginBottom: "0.35rem",
+                      color: "var(--primary-light)",
+                    }}
+                  >
                     Custom Sales Order Ref *
                   </label>
                   <input
@@ -1529,61 +2036,167 @@ export const FinanceModule: React.FC = () => {
                     placeholder="e.g. SO-2026-999"
                     value={customOrderRef}
                     onChange={(e) => setCustomOrderRef(e.target.value)}
-                    style={{ width: '100%', padding: '0.55rem', background: 'var(--bg-secondary)', color: 'var(--text-primary)', border: '1px solid var(--primary)', borderRadius: 'var(--radius-md)' }}
+                    style={{
+                      width: "100%",
+                      padding: "0.55rem",
+                      background: "var(--bg-secondary)",
+                      color: "var(--text-primary)",
+                      border: "1px solid var(--primary)",
+                      borderRadius: "var(--radius-md)",
+                    }}
                   />
                 </div>
               )}
 
               <div>
-                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, marginBottom: '0.35rem', color: 'var(--text-secondary)' }}>Customer / Buyer Name</label>
+                <label
+                  style={{
+                    display: "block",
+                    fontSize: "0.8rem",
+                    fontWeight: 600,
+                    marginBottom: "0.35rem",
+                    color: "var(--text-secondary)",
+                  }}
+                >
+                  Customer / Buyer Name
+                </label>
                 <input
                   type="text"
                   required
                   value={newCustomer}
                   onChange={(e) => setNewCustomer(e.target.value)}
-                  style={{ width: '100%', padding: '0.55rem', background: 'var(--bg-secondary)', color: 'var(--text-primary)', border: '1px solid var(--border-medium)', borderRadius: 'var(--radius-md)' }}
+                  style={{
+                    width: "100%",
+                    padding: "0.55rem",
+                    background: "var(--bg-secondary)",
+                    color: "var(--text-primary)",
+                    border: "1px solid var(--border-medium)",
+                    borderRadius: "var(--radius-md)",
+                  }}
                 />
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "1fr 1fr",
+                  gap: "1rem",
+                }}
+              >
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, marginBottom: '0.35rem', color: 'var(--text-secondary)' }}>Total Invoiced ($ USD)</label>
+                  <label
+                    style={{
+                      display: "block",
+                      fontSize: "0.8rem",
+                      fontWeight: 600,
+                      marginBottom: "0.35rem",
+                      color: "var(--text-secondary)",
+                    }}
+                  >
+                    Total Invoiced ($ USD)
+                  </label>
                   <input
                     type="number"
                     required
                     value={newTotal}
                     onChange={(e) => setNewTotal(e.target.value)}
-                    style={{ width: '100%', padding: '0.55rem', background: 'var(--bg-secondary)', color: 'var(--text-primary)', border: '1px solid var(--border-medium)', borderRadius: 'var(--radius-md)' }}
+                    style={{
+                      width: "100%",
+                      padding: "0.55rem",
+                      background: "var(--bg-secondary)",
+                      color: "var(--text-primary)",
+                      border: "1px solid var(--border-medium)",
+                      borderRadius: "var(--radius-md)",
+                    }}
                   />
                 </div>
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, marginBottom: '0.35rem', color: 'var(--text-secondary)' }}>Initial Paid ($ USD)</label>
+                  <label
+                    style={{
+                      display: "block",
+                      fontSize: "0.8rem",
+                      fontWeight: 600,
+                      marginBottom: "0.35rem",
+                      color: "var(--text-secondary)",
+                    }}
+                  >
+                    Initial Paid ($ USD)
+                  </label>
                   <input
                     type="number"
                     value={newPaid}
                     onChange={(e) => setNewPaid(e.target.value)}
-                    style={{ width: '100%', padding: '0.55rem', background: 'var(--bg-secondary)', color: 'var(--text-primary)', border: '1px solid var(--border-medium)', borderRadius: 'var(--radius-md)' }}
+                    style={{
+                      width: "100%",
+                      padding: "0.55rem",
+                      background: "var(--bg-secondary)",
+                      color: "var(--text-primary)",
+                      border: "1px solid var(--border-medium)",
+                      borderRadius: "var(--radius-md)",
+                    }}
                   />
                 </div>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "1fr 1fr",
+                  gap: "1rem",
+                }}
+              >
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, marginBottom: '0.35rem', color: 'var(--text-secondary)' }}>Due Date</label>
+                  <label
+                    style={{
+                      display: "block",
+                      fontSize: "0.8rem",
+                      fontWeight: 600,
+                      marginBottom: "0.35rem",
+                      color: "var(--text-secondary)",
+                    }}
+                  >
+                    Due Date
+                  </label>
                   <input
                     type="date"
                     required
                     value={newDueDate}
                     onChange={(e) => setNewDueDate(e.target.value)}
-                    style={{ width: '100%', padding: '0.55rem', background: 'var(--bg-secondary)', color: 'var(--text-primary)', border: '1px solid var(--border-medium)', borderRadius: 'var(--radius-md)' }}
+                    style={{
+                      width: "100%",
+                      padding: "0.55rem",
+                      background: "var(--bg-secondary)",
+                      color: "var(--text-primary)",
+                      border: "1px solid var(--border-medium)",
+                      borderRadius: "var(--radius-md)",
+                    }}
                   />
                 </div>
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, marginBottom: '0.35rem', color: 'var(--text-secondary)' }}>Initial Status</label>
+                  <label
+                    style={{
+                      display: "block",
+                      fontSize: "0.8rem",
+                      fontWeight: 600,
+                      marginBottom: "0.35rem",
+                      color: "var(--text-secondary)",
+                    }}
+                  >
+                    Initial Status
+                  </label>
                   <select
                     value={newStatus}
-                    onChange={(e) => setNewStatus(e.target.value as InvoiceItem['status'])}
-                    style={{ width: '100%', padding: '0.55rem', background: 'var(--bg-secondary)', color: 'var(--text-primary)', border: '1px solid var(--border-medium)', borderRadius: 'var(--radius-md)' }}
+                    onChange={(e) =>
+                      setNewStatus(e.target.value as InvoiceItem["status"])
+                    }
+                    style={{
+                      width: "100%",
+                      padding: "0.55rem",
+                      background: "var(--bg-secondary)",
+                      color: "var(--text-primary)",
+                      border: "1px solid var(--border-medium)",
+                      borderRadius: "var(--radius-md)",
+                    }}
                   >
                     <option value="DRAFT">DRAFT</option>
                     <option value="ISSUED">ISSUED</option>
@@ -1594,10 +2207,27 @@ export const FinanceModule: React.FC = () => {
                 </div>
               </div>
 
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '0.5rem' }}>
-                <button type="button" className="btn btn-outline" onClick={() => setShowCreateModal(false)}>Cancel</button>
-                <button type="submit" className="btn btn-primary" disabled={isSubmittingCreate}>
-                  {isSubmittingCreate ? 'Creating...' : 'Create Invoice'}
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "flex-end",
+                  gap: "0.75rem",
+                  marginTop: "0.5rem",
+                }}
+              >
+                <button
+                  type="button"
+                  className="btn btn-outline"
+                  onClick={() => setShowCreateModal(false)}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="btn btn-primary"
+                  disabled={isSubmittingCreate}
+                >
+                  {isSubmittingCreate ? "Creating..." : "Create Invoice"}
                 </button>
               </div>
             </form>
@@ -1607,101 +2237,263 @@ export const FinanceModule: React.FC = () => {
 
       {/* Edit Commercial Invoice Modal */}
       {editingInvoice && (
-        <div style={{
-          position: 'fixed',
-          inset: 0,
-          background: 'rgba(0,0,0,0.65)',
-          backdropFilter: 'blur(4px)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 1000,
-          padding: '1rem',
-        }}>
-          <div className="card" style={{ maxWidth: '540px', width: '100%' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', borderBottom: '1px solid var(--border-subtle)', paddingBottom: '0.75rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(0,0,0,0.65)",
+            backdropFilter: "blur(4px)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 1000,
+            padding: "1rem",
+          }}
+        >
+          <div className="card" style={{ maxWidth: "540px", width: "100%" }}>
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                marginBottom: "1.25rem",
+                borderBottom: "1px solid var(--border-subtle)",
+                paddingBottom: "0.75rem",
+              }}
+            >
+              <div
+                style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}
+              >
                 <Pencil size={18} color="var(--primary-light)" />
-                <h3 style={{ fontSize: '1.15rem', fontWeight: 700, margin: 0 }}>Edit Commercial Invoice ({editingInvoice.invoiceNumber})</h3>
+                <h3 style={{ fontSize: "1.15rem", fontWeight: 700, margin: 0 }}>
+                  Edit Commercial Invoice ({editingInvoice.invoiceNumber})
+                </h3>
               </div>
-              <button className="btn btn-sm btn-ghost" onClick={() => setEditingInvoice(null)}>✕</button>
+              <button
+                className="btn btn-sm btn-ghost"
+                onClick={() => setEditingInvoice(null)}
+              >
+                ✕
+              </button>
             </div>
 
-            <form onSubmit={handleUpdateInvoice} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+            <form
+              onSubmit={handleUpdateInvoice}
+              style={{ display: "flex", flexDirection: "column", gap: "1rem" }}
+            >
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "1fr 1fr",
+                  gap: "1rem",
+                }}
+              >
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, marginBottom: '0.35rem', color: 'var(--text-secondary)' }}>Invoice #</label>
+                  <label
+                    style={{
+                      display: "block",
+                      fontSize: "0.8rem",
+                      fontWeight: 600,
+                      marginBottom: "0.35rem",
+                      color: "var(--text-secondary)",
+                    }}
+                  >
+                    Invoice #
+                  </label>
                   <input
                     type="text"
                     required
                     value={editInvNumber}
                     onChange={(e) => setEditInvNumber(e.target.value)}
-                    style={{ width: '100%', padding: '0.55rem', background: 'var(--bg-secondary)', color: 'var(--text-primary)', border: '1px solid var(--border-medium)', borderRadius: 'var(--radius-md)' }}
+                    style={{
+                      width: "100%",
+                      padding: "0.55rem",
+                      background: "var(--bg-secondary)",
+                      color: "var(--text-primary)",
+                      border: "1px solid var(--border-medium)",
+                      borderRadius: "var(--radius-md)",
+                    }}
                   />
                 </div>
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, marginBottom: '0.35rem', color: 'var(--text-secondary)' }}>Sales Order Ref</label>
+                  <label
+                    style={{
+                      display: "block",
+                      fontSize: "0.8rem",
+                      fontWeight: 600,
+                      marginBottom: "0.35rem",
+                      color: "var(--text-secondary)",
+                    }}
+                  >
+                    Sales Order Ref
+                  </label>
                   <input
                     type="text"
                     required
                     value={editOrderRef}
                     onChange={(e) => setEditOrderRef(e.target.value)}
-                    style={{ width: '100%', padding: '0.55rem', background: 'var(--bg-secondary)', color: 'var(--text-primary)', border: '1px solid var(--border-medium)', borderRadius: 'var(--radius-md)' }}
+                    style={{
+                      width: "100%",
+                      padding: "0.55rem",
+                      background: "var(--bg-secondary)",
+                      color: "var(--text-primary)",
+                      border: "1px solid var(--border-medium)",
+                      borderRadius: "var(--radius-md)",
+                    }}
                   />
                 </div>
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, marginBottom: '0.35rem', color: 'var(--text-secondary)' }}>Customer / Buyer Name</label>
+                <label
+                  style={{
+                    display: "block",
+                    fontSize: "0.8rem",
+                    fontWeight: 600,
+                    marginBottom: "0.35rem",
+                    color: "var(--text-secondary)",
+                  }}
+                >
+                  Customer / Buyer Name
+                </label>
                 <input
                   type="text"
                   required
                   value={editCustomer}
                   onChange={(e) => setEditCustomer(e.target.value)}
-                  style={{ width: '100%', padding: '0.55rem', background: 'var(--bg-secondary)', color: 'var(--text-primary)', border: '1px solid var(--border-medium)', borderRadius: 'var(--radius-md)' }}
+                  style={{
+                    width: "100%",
+                    padding: "0.55rem",
+                    background: "var(--bg-secondary)",
+                    color: "var(--text-primary)",
+                    border: "1px solid var(--border-medium)",
+                    borderRadius: "var(--radius-md)",
+                  }}
                 />
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "1fr 1fr",
+                  gap: "1rem",
+                }}
+              >
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, marginBottom: '0.35rem', color: 'var(--text-secondary)' }}>Total Invoiced ($ USD)</label>
+                  <label
+                    style={{
+                      display: "block",
+                      fontSize: "0.8rem",
+                      fontWeight: 600,
+                      marginBottom: "0.35rem",
+                      color: "var(--text-secondary)",
+                    }}
+                  >
+                    Total Invoiced ($ USD)
+                  </label>
                   <input
                     type="number"
                     required
                     value={editTotal}
                     onChange={(e) => setEditTotal(e.target.value)}
-                    style={{ width: '100%', padding: '0.55rem', background: 'var(--bg-secondary)', color: 'var(--text-primary)', border: '1px solid var(--border-medium)', borderRadius: 'var(--radius-md)' }}
+                    style={{
+                      width: "100%",
+                      padding: "0.55rem",
+                      background: "var(--bg-secondary)",
+                      color: "var(--text-primary)",
+                      border: "1px solid var(--border-medium)",
+                      borderRadius: "var(--radius-md)",
+                    }}
                   />
                 </div>
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, marginBottom: '0.35rem', color: 'var(--text-secondary)' }}>Paid Amount ($ USD)</label>
+                  <label
+                    style={{
+                      display: "block",
+                      fontSize: "0.8rem",
+                      fontWeight: 600,
+                      marginBottom: "0.35rem",
+                      color: "var(--text-secondary)",
+                    }}
+                  >
+                    Paid Amount ($ USD)
+                  </label>
                   <input
                     type="number"
                     required
                     value={editPaid}
                     onChange={(e) => setEditPaid(e.target.value)}
-                    style={{ width: '100%', padding: '0.55rem', background: 'var(--bg-secondary)', color: 'var(--text-primary)', border: '1px solid var(--border-medium)', borderRadius: 'var(--radius-md)' }}
+                    style={{
+                      width: "100%",
+                      padding: "0.55rem",
+                      background: "var(--bg-secondary)",
+                      color: "var(--text-primary)",
+                      border: "1px solid var(--border-medium)",
+                      borderRadius: "var(--radius-md)",
+                    }}
                   />
                 </div>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "1fr 1fr",
+                  gap: "1rem",
+                }}
+              >
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, marginBottom: '0.35rem', color: 'var(--text-secondary)' }}>Due Date</label>
+                  <label
+                    style={{
+                      display: "block",
+                      fontSize: "0.8rem",
+                      fontWeight: 600,
+                      marginBottom: "0.35rem",
+                      color: "var(--text-secondary)",
+                    }}
+                  >
+                    Due Date
+                  </label>
                   <input
                     type="date"
                     required
                     value={editDueDate}
                     onChange={(e) => setEditDueDate(e.target.value)}
-                    style={{ width: '100%', padding: '0.55rem', background: 'var(--bg-secondary)', color: 'var(--text-primary)', border: '1px solid var(--border-medium)', borderRadius: 'var(--radius-md)' }}
+                    style={{
+                      width: "100%",
+                      padding: "0.55rem",
+                      background: "var(--bg-secondary)",
+                      color: "var(--text-primary)",
+                      border: "1px solid var(--border-medium)",
+                      borderRadius: "var(--radius-md)",
+                    }}
                   />
                 </div>
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, marginBottom: '0.35rem', color: 'var(--text-secondary)' }}>Status</label>
+                  <label
+                    style={{
+                      display: "block",
+                      fontSize: "0.8rem",
+                      fontWeight: 600,
+                      marginBottom: "0.35rem",
+                      color: "var(--text-secondary)",
+                    }}
+                  >
+                    Status
+                  </label>
                   <select
                     value={editStatus}
-                    onChange={(e) => setEditStatus(e.target.value as InvoiceItem['status'])}
-                    style={{ width: '100%', padding: '0.55rem', background: 'var(--bg-secondary)', color: 'var(--text-primary)', border: '1px solid var(--border-medium)', borderRadius: 'var(--radius-md)' }}
+                    onChange={(e) =>
+                      setEditStatus(e.target.value as InvoiceItem["status"])
+                    }
+                    style={{
+                      width: "100%",
+                      padding: "0.55rem",
+                      background: "var(--bg-secondary)",
+                      color: "var(--text-primary)",
+                      border: "1px solid var(--border-medium)",
+                      borderRadius: "var(--radius-md)",
+                    }}
                   >
                     <option value="DRAFT">DRAFT</option>
                     <option value="ISSUED">ISSUED</option>
@@ -1713,10 +2505,27 @@ export const FinanceModule: React.FC = () => {
                 </div>
               </div>
 
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '0.5rem' }}>
-                <button type="button" className="btn btn-outline" onClick={() => setEditingInvoice(null)}>Cancel</button>
-                <button type="submit" className="btn btn-primary" disabled={isUpdating}>
-                  {isUpdating ? 'Saving Changes...' : 'Update Invoice'}
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "flex-end",
+                  gap: "0.75rem",
+                  marginTop: "0.5rem",
+                }}
+              >
+                <button
+                  type="button"
+                  className="btn btn-outline"
+                  onClick={() => setEditingInvoice(null)}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="btn btn-primary"
+                  disabled={isUpdating}
+                >
+                  {isUpdating ? "Saving Changes..." : "Update Invoice"}
                 </button>
               </div>
             </form>
@@ -1726,60 +2535,159 @@ export const FinanceModule: React.FC = () => {
 
       {/* Record Payment Modal */}
       {showPayModal && selectedInvoice && (
-        <div style={{
-          position: 'fixed',
-          inset: 0,
-          background: 'rgba(0,0,0,0.65)',
-          backdropFilter: 'blur(4px)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 1000,
-          padding: '1rem',
-        }}>
-          <div className="card" style={{ maxWidth: '500px', width: '100%' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', borderBottom: '1px solid var(--border-subtle)', paddingBottom: '0.75rem' }}>
-              <h3 style={{ fontSize: '1.15rem', fontWeight: 700, margin: 0 }}>Record Inward SWIFT Payment</h3>
-              <button className="btn btn-sm btn-ghost" onClick={() => setShowPayModal(false)}>✕</button>
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(0,0,0,0.65)",
+            backdropFilter: "blur(4px)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 1000,
+            padding: "1rem",
+          }}
+        >
+          <div className="card" style={{ maxWidth: "500px", width: "100%" }}>
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                marginBottom: "1.25rem",
+                borderBottom: "1px solid var(--border-subtle)",
+                paddingBottom: "0.75rem",
+              }}
+            >
+              <h3 style={{ fontSize: "1.15rem", fontWeight: 700, margin: 0 }}>
+                Record Inward SWIFT Payment
+              </h3>
+              <button
+                className="btn btn-sm btn-ghost"
+                onClick={() => setShowPayModal(false)}
+              >
+                ✕
+              </button>
             </div>
 
-            <form onSubmit={handleRecordPayment} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              <div style={{ background: 'var(--bg-tertiary)', padding: '0.85rem', borderRadius: 'var(--radius-md)' }}>
-                <div style={{ fontSize: '0.775rem', color: 'var(--text-muted)' }}>Target Invoice & Customer:</div>
-                <div style={{ fontWeight: 600, color: 'var(--text-primary)', marginTop: '2px' }}>
-                  {selectedInvoice.invoiceNumber} • {selectedInvoice.customerName}
+            <form
+              onSubmit={handleRecordPayment}
+              style={{ display: "flex", flexDirection: "column", gap: "1rem" }}
+            >
+              <div
+                style={{
+                  background: "var(--bg-tertiary)",
+                  padding: "0.85rem",
+                  borderRadius: "var(--radius-md)",
+                }}
+              >
+                <div
+                  style={{ fontSize: "0.775rem", color: "var(--text-muted)" }}
+                >
+                  Target Invoice & Customer:
                 </div>
-                <div style={{ fontSize: '0.85rem', color: 'var(--warning)', marginTop: '0.35rem', fontWeight: 600 }}>
-                  Current Outstanding: ${selectedInvoice.balanceDue.toLocaleString()} USD
+                <div
+                  style={{
+                    fontWeight: 600,
+                    color: "var(--text-primary)",
+                    marginTop: "2px",
+                  }}
+                >
+                  {selectedInvoice.invoiceNumber} •{" "}
+                  {selectedInvoice.customerName}
+                </div>
+                <div
+                  style={{
+                    fontSize: "0.85rem",
+                    color: "var(--warning)",
+                    marginTop: "0.35rem",
+                    fontWeight: 600,
+                  }}
+                >
+                  Current Outstanding: $
+                  {selectedInvoice.balanceDue.toLocaleString()} USD
                 </div>
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, marginBottom: '0.35rem', color: 'var(--text-secondary)' }}>Payment Amount Received ($ USD)</label>
+                <label
+                  style={{
+                    display: "block",
+                    fontSize: "0.8rem",
+                    fontWeight: 600,
+                    marginBottom: "0.35rem",
+                    color: "var(--text-secondary)",
+                  }}
+                >
+                  Payment Amount Received ($ USD)
+                </label>
                 <input
                   type="number"
                   required
                   value={payAmount}
                   onChange={(e) => setPayAmount(e.target.value)}
-                  style={{ width: '100%', padding: '0.55rem', background: 'var(--bg-secondary)', color: 'var(--text-primary)', border: '1px solid var(--border-medium)', borderRadius: 'var(--radius-md)' }}
+                  style={{
+                    width: "100%",
+                    padding: "0.55rem",
+                    background: "var(--bg-secondary)",
+                    color: "var(--text-primary)",
+                    border: "1px solid var(--border-medium)",
+                    borderRadius: "var(--radius-md)",
+                  }}
                 />
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, marginBottom: '0.35rem', color: 'var(--text-secondary)' }}>Bank SWIFT / Wire Reference</label>
+                <label
+                  style={{
+                    display: "block",
+                    fontSize: "0.8rem",
+                    fontWeight: 600,
+                    marginBottom: "0.35rem",
+                    color: "var(--text-secondary)",
+                  }}
+                >
+                  Bank SWIFT / Wire Reference
+                </label>
                 <input
                   type="text"
                   required
                   value={swiftRef}
                   onChange={(e) => setSwiftRef(e.target.value)}
-                  style={{ width: '100%', padding: '0.55rem', background: 'var(--bg-secondary)', color: 'var(--text-primary)', border: '1px solid var(--border-medium)', borderRadius: 'var(--radius-md)' }}
+                  style={{
+                    width: "100%",
+                    padding: "0.55rem",
+                    background: "var(--bg-secondary)",
+                    color: "var(--text-primary)",
+                    border: "1px solid var(--border-medium)",
+                    borderRadius: "var(--radius-md)",
+                  }}
                 />
               </div>
 
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '0.5rem' }}>
-                <button type="button" className="btn btn-outline" onClick={() => setShowPayModal(false)}>Cancel</button>
-                <button type="submit" className="btn btn-primary" disabled={isSubmittingPayment}>
-                  {isSubmittingPayment ? 'Allocating...' : 'Allocate & Confirm Payment'}
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "flex-end",
+                  gap: "0.75rem",
+                  marginTop: "0.5rem",
+                }}
+              >
+                <button
+                  type="button"
+                  className="btn btn-outline"
+                  onClick={() => setShowPayModal(false)}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="btn btn-primary"
+                  disabled={isSubmittingPayment}
+                >
+                  {isSubmittingPayment
+                    ? "Allocating..."
+                    : "Allocate & Confirm Payment"}
                 </button>
               </div>
             </form>
@@ -1789,63 +2697,164 @@ export const FinanceModule: React.FC = () => {
 
       {/* Record Outward Wire to Supplier Modal */}
       {showDisburseModal && selectedBill && (
-        <div style={{
-          position: 'fixed',
-          inset: 0,
-          background: 'rgba(0,0,0,0.65)',
-          backdropFilter: 'blur(4px)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 1000,
-          padding: '1rem',
-        }}>
-          <div className="card" style={{ maxWidth: '500px', width: '100%' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', borderBottom: '1px solid var(--border-subtle)', paddingBottom: '0.75rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(0,0,0,0.65)",
+            backdropFilter: "blur(4px)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 1000,
+            padding: "1rem",
+          }}
+        >
+          <div className="card" style={{ maxWidth: "500px", width: "100%" }}>
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                marginBottom: "1.25rem",
+                borderBottom: "1px solid var(--border-subtle)",
+                paddingBottom: "0.75rem",
+              }}
+            >
+              <div
+                style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}
+              >
                 <Send size={18} color="var(--primary-light)" />
-                <h3 style={{ fontSize: '1.15rem', fontWeight: 700, margin: 0 }}>Disburse Outward Wire to Supplier</h3>
+                <h3 style={{ fontSize: "1.15rem", fontWeight: 700, margin: 0 }}>
+                  Disburse Outward Wire to Supplier
+                </h3>
               </div>
-              <button className="btn btn-sm btn-ghost" onClick={() => setShowDisburseModal(false)}>✕</button>
+              <button
+                className="btn btn-sm btn-ghost"
+                onClick={() => setShowDisburseModal(false)}
+              >
+                ✕
+              </button>
             </div>
 
-            <form onSubmit={handleRecordDisbursement} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              <div style={{ background: 'var(--bg-tertiary)', padding: '0.85rem', borderRadius: 'var(--radius-md)' }}>
-                <div style={{ fontSize: '0.775rem', color: 'var(--text-muted)' }}>Target Bill & Sourcing Partner:</div>
-                <div style={{ fontWeight: 600, color: 'var(--text-primary)', marginTop: '2px' }}>
-                  {selectedBill.billNumber} • {selectedBill.supplierName} ({selectedBill.poNumber})
+            <form
+              onSubmit={handleRecordDisbursement}
+              style={{ display: "flex", flexDirection: "column", gap: "1rem" }}
+            >
+              <div
+                style={{
+                  background: "var(--bg-tertiary)",
+                  padding: "0.85rem",
+                  borderRadius: "var(--radius-md)",
+                }}
+              >
+                <div
+                  style={{ fontSize: "0.775rem", color: "var(--text-muted)" }}
+                >
+                  Target Bill & Sourcing Partner:
                 </div>
-                <div style={{ fontSize: '0.85rem', color: 'var(--danger)', marginTop: '0.35rem', fontWeight: 600 }}>
-                  Current Outstanding Payable: ${selectedBill.balanceDue.toLocaleString()} USD
+                <div
+                  style={{
+                    fontWeight: 600,
+                    color: "var(--text-primary)",
+                    marginTop: "2px",
+                  }}
+                >
+                  {selectedBill.billNumber} • {selectedBill.supplierName} (
+                  {selectedBill.poNumber})
+                </div>
+                <div
+                  style={{
+                    fontSize: "0.85rem",
+                    color: "var(--danger)",
+                    marginTop: "0.35rem",
+                    fontWeight: 600,
+                  }}
+                >
+                  Current Outstanding Payable: $
+                  {selectedBill.balanceDue.toLocaleString()} USD
                 </div>
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, marginBottom: '0.35rem', color: 'var(--text-secondary)' }}>Disbursement Amount ($ USD)</label>
+                <label
+                  style={{
+                    display: "block",
+                    fontSize: "0.8rem",
+                    fontWeight: 600,
+                    marginBottom: "0.35rem",
+                    color: "var(--text-secondary)",
+                  }}
+                >
+                  Disbursement Amount ($ USD)
+                </label>
                 <input
                   type="number"
                   required
                   value={disburseAmount}
                   onChange={(e) => setDisburseAmount(e.target.value)}
-                  style={{ width: '100%', padding: '0.55rem', background: 'var(--bg-secondary)', color: 'var(--text-primary)', border: '1px solid var(--border-medium)', borderRadius: 'var(--radius-md)' }}
+                  style={{
+                    width: "100%",
+                    padding: "0.55rem",
+                    background: "var(--bg-secondary)",
+                    color: "var(--text-primary)",
+                    border: "1px solid var(--border-medium)",
+                    borderRadius: "var(--radius-md)",
+                  }}
                 />
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, marginBottom: '0.35rem', color: 'var(--text-secondary)' }}>Bank Outward Wire / RTGS Reference</label>
+                <label
+                  style={{
+                    display: "block",
+                    fontSize: "0.8rem",
+                    fontWeight: 600,
+                    marginBottom: "0.35rem",
+                    color: "var(--text-secondary)",
+                  }}
+                >
+                  Bank Outward Wire / RTGS Reference
+                </label>
                 <input
                   type="text"
                   required
                   value={disburseRef}
                   onChange={(e) => setDisburseRef(e.target.value)}
-                  style={{ width: '100%', padding: '0.55rem', background: 'var(--bg-secondary)', color: 'var(--text-primary)', border: '1px solid var(--border-medium)', borderRadius: 'var(--radius-md)' }}
+                  style={{
+                    width: "100%",
+                    padding: "0.55rem",
+                    background: "var(--bg-secondary)",
+                    color: "var(--text-primary)",
+                    border: "1px solid var(--border-medium)",
+                    borderRadius: "var(--radius-md)",
+                  }}
                 />
               </div>
 
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '0.5rem' }}>
-                <button type="button" className="btn btn-outline" onClick={() => setShowDisburseModal(false)}>Cancel</button>
-                <button type="submit" className="btn btn-primary" disabled={isSubmittingDisburse}>
-                  {isSubmittingDisburse ? 'Disbursing...' : 'Confirm Outward Wire'}
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "flex-end",
+                  gap: "0.75rem",
+                  marginTop: "0.5rem",
+                }}
+              >
+                <button
+                  type="button"
+                  className="btn btn-outline"
+                  onClick={() => setShowDisburseModal(false)}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="btn btn-primary"
+                  disabled={isSubmittingDisburse}
+                >
+                  {isSubmittingDisburse
+                    ? "Disbursing..."
+                    : "Confirm Outward Wire"}
                 </button>
               </div>
             </form>

@@ -1,5 +1,5 @@
-import React from 'react';
-import { Search, X, Download } from 'lucide-react';
+import React from "react";
+import { Search, X, Download } from "lucide-react";
 
 export interface FilterOption {
   id: string;
@@ -24,7 +24,7 @@ export interface TableToolbarProps {
 export const TableToolbar: React.FC<TableToolbarProps> = ({
   searchQuery,
   onSearchChange,
-  searchPlaceholder = 'Search records...',
+  searchPlaceholder = "Search records...",
   filterOptions,
   activeFilter,
   onFilterChange,
@@ -39,21 +39,23 @@ export const TableToolbar: React.FC<TableToolbarProps> = ({
       {/* Batch Selection Action Bar */}
       {selectedCount > 0 && (
         <div className="selection-action-bar">
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          <div
+            style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}
+          >
             <span style={{ fontWeight: 600 }}>
-              {selectedCount} item{selectedCount > 1 ? 's' : ''} selected
+              {selectedCount} item{selectedCount > 1 ? "s" : ""} selected
             </span>
             {onClearSelection && (
               <button
                 onClick={onClearSelection}
                 className="btn btn-xs btn-ghost"
-                style={{ textDecoration: 'underline' }}
+                style={{ textDecoration: "underline" }}
               >
                 Clear selection
               </button>
             )}
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
             {selectionActions}
           </div>
         </div>
@@ -74,7 +76,7 @@ export const TableToolbar: React.FC<TableToolbarProps> = ({
             />
             {searchQuery && (
               <button
-                onClick={() => onSearchChange('')}
+                onClick={() => onSearchChange("")}
                 className="table-search-clear"
                 title="Clear search"
               >
@@ -92,10 +94,10 @@ export const TableToolbar: React.FC<TableToolbarProps> = ({
                   <button
                     key={opt.id}
                     onClick={() => onFilterChange(opt.id)}
-                    className={`filter-chip ${isActive ? 'active' : ''}`}
+                    className={`filter-chip ${isActive ? "active" : ""}`}
                   >
                     <span>{opt.label}</span>
-                    {typeof opt.count === 'number' && (
+                    {typeof opt.count === "number" && (
                       <span className="filter-chip-count">{opt.count}</span>
                     )}
                   </button>

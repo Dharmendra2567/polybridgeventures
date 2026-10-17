@@ -1,8 +1,10 @@
-import { getPrismaClient } from './infrastructure/database/prisma.js';
+import { getPrismaClient } from "./infrastructure/database/prisma.js";
 
 export async function applyFxMigration() {
   const prisma = getPrismaClient();
-  console.log('[FX Migration] Starting database migration for Market Countries and FX Exchange Rates...');
+  console.log(
+    "[FX Migration] Starting database migration for Market Countries and FX Exchange Rates...",
+  );
 
   const ddlStatements = [
     `CREATE TABLE IF NOT EXISTS "market_countries" (
@@ -49,13 +51,13 @@ export async function applyFxMigration() {
   for (const stmt of ddlStatements) {
     try {
       await prisma.$executeRawUnsafe(stmt);
-      console.log('[FX Migration] Executed statement successfully.');
+      console.log("[FX Migration] Executed statement successfully.");
     } catch (err: any) {
-      console.error('[FX Migration Warning] Statement failed:', err.message);
+      console.error("[FX Migration Warning] Statement failed:", err.message);
     }
   }
 
-  console.log('[FX Migration] DDL applied successfully.');
+  console.log("[FX Migration] DDL applied successfully.");
 }
 
 applyFxMigration()

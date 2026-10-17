@@ -6,4 +6,4 @@
  * - Localtunnel (via Vite reverse proxy over tunnel)
  * - Vercel production (via monolithic Vercel Serverless Function)
  */
-export const API_BASE = '/api/v1';
+export const API_BASE = "/api/v1";

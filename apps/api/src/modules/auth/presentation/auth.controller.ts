@@ -1,7 +1,7 @@
-import type { FastifyRequest, FastifyReply } from 'fastify';
-import { sendResult } from '../../../shared/http-result.js';
-import { AuthService } from '../application/auth.service.js';
-import type { PrismaClient } from '../../../generated/client/index.js';
+import type { FastifyRequest, FastifyReply } from "fastify";
+import { sendResult } from "../../../shared/http-result.js";
+import { AuthService } from "../application/auth.service.js";
+import type { PrismaClient } from "../../../generated/client/index.js";
 
 export class AuthController {
   constructor(private readonly service: AuthService) {}
@@ -10,7 +10,10 @@ export class AuthController {
     return sendResult(reply, await this.service.getSession());
   }
 
-  async login(req: FastifyRequest<{ Body?: { email?: string; userId?: string } }>, reply: FastifyReply) {
+  async login(
+    req: FastifyRequest<{ Body?: { email?: string; userId?: string } }>,
+    reply: FastifyReply,
+  ) {
     return sendResult(reply, await this.service.login(req));
   }
 

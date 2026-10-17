@@ -14,7 +14,6 @@ import {
 import { healthRoutes } from "./presentation/routes/health.routes.js";
 import { tradeRoutes } from "./presentation/routes/trade.routes.js";
 
-
 export async function buildServer(
   options: FastifyServerOptions = {},
 ): Promise<FastifyInstance> {
@@ -102,4 +101,3 @@ export async function buildServer(
 
   return server;
 }
-

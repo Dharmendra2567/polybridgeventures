@@ -1,8 +1,8 @@
-import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
-import { logger } from '../../../infrastructure/logging/logger.js';
-import { getOrganizationId } from '../../../shared/organization.context.js';
-import { logAudit } from '../../../shared/audit.service.js';
-import type { PrismaClient } from '../../../generated/client/index.js';
+import type { FastifyInstance, FastifyRequest, FastifyReply } from "fastify";
+import { logger } from "../../../infrastructure/logging/logger.js";
+import { getOrganizationId } from "../../../shared/organization.context.js";
+import { logAudit } from "../../../shared/audit.service.js";
+import type { PrismaClient } from "../../../generated/client/index.js";
 
 export interface MarketCountryDto {
   id: string;
@@ -32,7 +32,7 @@ export interface ExchangePairDto {
   effectiveDate: string;
 }
 
-import { SEEDED_MARKET_COUNTRIES } from '../fx.constants.js';
+import { SEEDED_MARKET_COUNTRIES } from "../fx.constants.js";
 
 export class FxService {
   constructor(readonly prisma: PrismaClient) {}
@@ -43,19 +43,49 @@ export class FxService {
     // -------------------------------------------------------------
     // 1. GET ALL MARKET COUNTRIES & RATES
     // -------------------------------------------------------------
-    server.get('/fx/markets', async (_req: FastifyRequest, reply: FastifyReply) => {
-      try {
-        const orgId = await getOrganizationId();
-        const countries = await prisma.marketCountry.findMany({
-          where: { organizationId: orgId },
-          orderBy: [{ isBaseCurrency: 'desc' }, { countryName: 'asc' }],
-        });
+    server.get(
+      "/fx/markets",
+      async (_req: FastifyRequest, reply: FastifyReply) => {
+        try {
+          const orgId = await getOrganizationId();
+          const countries = await prisma.marketCountry.findMany({
+            where: { organizationId: orgId },
+            orderBy: [{ isBaseCurrency: "desc" }, { countryName: "asc" }],
+          });
 
-        if (countries.length > 0) {
-          const result: MarketCountryDto[] = countries.map((c) => {
-            const rate = Number(c.exchangeRateToUsd);
+          if (countries.length > 0) {
+            const result: MarketCountryDto[] = countries.map((c) => {
+              const rate = Number(c.exchangeRateToUsd);
+              return {
+                id: c.id,
+                countryCode: c.countryCode,
+                countryName: c.countryName,
+                currencyCode: c.currencyCode,
+                currencyName: c.currencyName,
+                currencySymbol: c.currencySymbol,
+                exchangeRateToUsd: rate,
+                usdPerUnit: rate > 0 ? Number((1 / rate).toFixed(6)) : 0,
+                isBaseCurrency: c.isBaseCurrency,
+                isActive: c.isActive,
+                notes: c.notes || "",
+                updatedAt: c.updatedAt.toISOString(),
+              };
+            });
+            return reply.send({ markets: result });
+          }
+        } catch (err) {
+          logger.warn(
+            { err },
+            "[FX] Database read error, using resilient market cache",
+          );
+        }
+
+        // Resilient fallback with all 11+ countries
+        const fallbackResult: MarketCountryDto[] = SEEDED_MARKET_COUNTRIES.map(
+          (c, i) => {
+            const rate = c.exchangeRateToUsd;
             return {
-              id: c.id,
+              id: `market-${c.countryCode.toLowerCase()}-${i}`,
               countryCode: c.countryCode,
               countryName: c.countryName,
               currencyCode: c.currencyCode,
@@ -64,44 +94,22 @@ export class FxService {
               exchangeRateToUsd: rate,
               usdPerUnit: rate > 0 ? Number((1 / rate).toFixed(6)) : 0,
               isBaseCurrency: c.isBaseCurrency,
-              isActive: c.isActive,
-              notes: c.notes || '',
-              updatedAt: c.updatedAt.toISOString(),
+              isActive: true,
+              notes: c.notes,
+              updatedAt: new Date().toISOString(),
             };
-          });
-          return reply.send({ markets: result });
-        }
-      } catch (err) {
-        logger.warn({ err }, '[FX] Database read error, using resilient market cache');
-      }
+          },
+        );
 
-      // Resilient fallback with all 11+ countries
-      const fallbackResult: MarketCountryDto[] = SEEDED_MARKET_COUNTRIES.map((c, i) => {
-        const rate = c.exchangeRateToUsd;
-        return {
-          id: `market-${c.countryCode.toLowerCase()}-${i}`,
-          countryCode: c.countryCode,
-          countryName: c.countryName,
-          currencyCode: c.currencyCode,
-          currencyName: c.currencyName,
-          currencySymbol: c.currencySymbol,
-          exchangeRateToUsd: rate,
-          usdPerUnit: rate > 0 ? Number((1 / rate).toFixed(6)) : 0,
-          isBaseCurrency: c.isBaseCurrency,
-          isActive: true,
-          notes: c.notes,
-          updatedAt: new Date().toISOString(),
-        };
-      });
-
-      return reply.send({ markets: fallbackResult });
-    });
+        return reply.send({ markets: fallbackResult });
+      },
+    );
 
     // -------------------------------------------------------------
     // 2. CREATE A NEW MARKET COUNTRY & CURRENCY
     // -------------------------------------------------------------
     server.post(
-      '/fx/markets',
+      "/fx/markets",
       async (
         req: FastifyRequest<{
           Body: {
@@ -114,7 +122,7 @@ export class FxService {
             notes?: string;
           };
         }>,
-        reply: FastifyReply
+        reply: FastifyReply,
       ) => {
         try {
           const orgId = await getOrganizationId();
@@ -123,20 +131,22 @@ export class FxService {
             countryName,
             currencyCode,
             currencyName,
-            currencySymbol = '$',
+            currencySymbol = "$",
             exchangeRateToUsd = 1.0,
-            notes = '',
+            notes = "",
           } = req.body || {};
 
           if (!countryCode || !countryName || !currencyCode || !currencyName) {
             return reply.status(400).send({
-              error: 'countryCode, countryName, currencyCode, and currencyName are required',
+              error:
+                "countryCode, countryName, currencyCode, and currencyName are required",
             });
           }
 
           const cleanCode = countryCode.trim().toUpperCase();
           const cleanCurrency = currencyCode.trim().toUpperCase();
-          const numRate = Number(exchangeRateToUsd) > 0 ? Number(exchangeRateToUsd) : 1.0;
+          const numRate =
+            Number(exchangeRateToUsd) > 0 ? Number(exchangeRateToUsd) : 1.0;
 
           // Check for existing
           const existing = await prisma.marketCountry.findFirst({
@@ -156,9 +166,9 @@ export class FxService {
               countryName: countryName.trim(),
               currencyCode: cleanCurrency,
               currencyName: currencyName.trim(),
-              currencySymbol: currencySymbol.trim() || '$',
+              currencySymbol: currencySymbol.trim() || "$",
               exchangeRateToUsd: numRate,
-              isBaseCurrency: cleanCurrency === 'USD',
+              isBaseCurrency: cleanCurrency === "USD",
               isActive: true,
               notes: notes.trim(),
             },
@@ -172,9 +182,11 @@ export class FxService {
           for (const other of allCountries) {
             const otherRate = Number(other.exchangeRateToUsd);
             // newCountry -> other
-            const rateNewToOther = numRate > 0 ? Number((otherRate / numRate).toFixed(6)) : 1.0;
+            const rateNewToOther =
+              numRate > 0 ? Number((otherRate / numRate).toFixed(6)) : 1.0;
             // other -> newCountry
-            const rateOtherToNew = otherRate > 0 ? Number((numRate / otherRate).toFixed(6)) : 1.0;
+            const rateOtherToNew =
+              otherRate > 0 ? Number((numRate / otherRate).toFixed(6)) : 1.0;
 
             await prisma.exchangeRatePair.createMany({
               data: [
@@ -206,27 +218,27 @@ export class FxService {
           }
 
           await logAudit(
-            'SystemAdmin',
-            'CREATE',
-            'MarketCountry',
+            "SystemAdmin",
+            "CREATE",
+            "MarketCountry",
             newCountry.id,
             `Added market country: ${newCountry.countryName} (${newCountry.currencyCode}) @ ${numRate}/USD`,
-            newCountry.id
+            newCountry.id,
           );
 
           return reply.status(201).send({ market: newCountry });
         } catch (err) {
-          logger.error({ err }, '[FX] Failed to create market country');
+          logger.error({ err }, "[FX] Failed to create market country");
           return reply.status(500).send({ error: (err as Error).message });
         }
-      }
+      },
     );
 
     // -------------------------------------------------------------
     // 3. UPDATE AN EXISTING MARKET COUNTRY / EXCHANGE RATE
     // -------------------------------------------------------------
     server.put(
-      '/fx/markets/:id',
+      "/fx/markets/:id",
       async (
         req: FastifyRequest<{
           Params: { id: string };
@@ -240,7 +252,7 @@ export class FxService {
             isActive?: boolean;
           };
         }>,
-        reply: FastifyReply
+        reply: FastifyReply,
       ) => {
         try {
           const orgId = await getOrganizationId();
@@ -252,21 +264,29 @@ export class FxService {
           });
 
           if (!existing) {
-            return reply.status(404).send({ error: 'Market country not found' });
+            return reply
+              .status(404)
+              .send({ error: "Market country not found" });
           }
 
           const newRate =
-            body.exchangeRateToUsd !== undefined ? Number(body.exchangeRateToUsd) : Number(existing.exchangeRateToUsd);
+            body.exchangeRateToUsd !== undefined
+              ? Number(body.exchangeRateToUsd)
+              : Number(existing.exchangeRateToUsd);
 
           const updated = await prisma.marketCountry.update({
             where: { id },
             data: {
               countryName: body.countryName?.trim() || existing.countryName,
-              currencyCode: body.currencyCode?.trim().toUpperCase() || existing.currencyCode,
+              currencyCode:
+                body.currencyCode?.trim().toUpperCase() ||
+                existing.currencyCode,
               currencyName: body.currencyName?.trim() || existing.currencyName,
-              currencySymbol: body.currencySymbol?.trim() || existing.currencySymbol,
+              currencySymbol:
+                body.currencySymbol?.trim() || existing.currencySymbol,
               exchangeRateToUsd: newRate,
-              isActive: body.isActive !== undefined ? body.isActive : existing.isActive,
+              isActive:
+                body.isActive !== undefined ? body.isActive : existing.isActive,
               notes: body.notes !== undefined ? body.notes : existing.notes,
             },
           });
@@ -279,8 +299,10 @@ export class FxService {
 
             for (const other of allCountries) {
               const otherRate = Number(other.exchangeRateToUsd);
-              const forwardRate = newRate > 0 ? Number((otherRate / newRate).toFixed(6)) : 1.0;
-              const reverseRate = otherRate > 0 ? Number((newRate / otherRate).toFixed(6)) : 1.0;
+              const forwardRate =
+                newRate > 0 ? Number((otherRate / newRate).toFixed(6)) : 1.0;
+              const reverseRate =
+                otherRate > 0 ? Number((newRate / otherRate).toFixed(6)) : 1.0;
 
               // Update forward pair if not custom override
               await prisma.exchangeRatePair.updateMany({
@@ -309,115 +331,138 @@ export class FxService {
           }
 
           await logAudit(
-            'SystemAdmin',
-            'UPDATE',
-            'MarketCountry',
+            "SystemAdmin",
+            "UPDATE",
+            "MarketCountry",
             updated.id,
             `Updated market ${updated.countryName} (${updated.currencyCode}): rate = ${newRate}/USD`,
-            updated.id
+            updated.id,
           );
 
           return reply.send({ market: updated });
         } catch (err) {
-          logger.error({ err }, '[FX] Failed to update market country');
+          logger.error({ err }, "[FX] Failed to update market country");
           return reply.status(500).send({ error: (err as Error).message });
         }
-      }
+      },
     );
 
     // -------------------------------------------------------------
     // 4. GET FULL N x N CROSS-RATE MATRIX
     // -------------------------------------------------------------
-    server.get('/fx/matrix', async (_req: FastifyRequest, reply: FastifyReply) => {
-      try {
-        const orgId = await getOrganizationId();
-        const countries = await prisma.marketCountry.findMany({
-          where: { organizationId: orgId, isActive: true },
-          orderBy: [{ isBaseCurrency: 'desc' }, { countryName: 'asc' }],
-        });
+    server.get(
+      "/fx/matrix",
+      async (_req: FastifyRequest, reply: FastifyReply) => {
+        try {
+          const orgId = await getOrganizationId();
+          const countries = await prisma.marketCountry.findMany({
+            where: { organizationId: orgId, isActive: true },
+            orderBy: [{ isBaseCurrency: "desc" }, { countryName: "asc" }],
+          });
 
-        const pairs = await prisma.exchangeRatePair.findMany({
-          where: { organizationId: orgId },
-          include: { fromCountry: true, toCountry: true },
-        });
+          const pairs = await prisma.exchangeRatePair.findMany({
+            where: { organizationId: orgId },
+            include: { fromCountry: true, toCountry: true },
+          });
 
-        // Structure as a matrix lookup
-        const matrix: Record<string, Record<string, { rate: number; isCustomOverride: boolean }>> = {};
+          // Structure as a matrix lookup
+          const matrix: Record<
+            string,
+            Record<string, { rate: number; isCustomOverride: boolean }>
+          > = {};
 
-        for (const c of countries) {
-          matrix[c.id] = {};
+          for (const c of countries) {
+            matrix[c.id] = {};
+          }
+
+          for (const p of pairs) {
+            if (matrix[p.fromCountryId]) {
+              matrix[p.fromCountryId]![p.toCountryId] = {
+                rate: Number(p.rate),
+                isCustomOverride: p.isCustomOverride,
+              };
+            }
+          }
+
+          // Fill any missing with triangulated math dynamically
+          for (const fromC of countries) {
+            const fromRate = Number(fromC.exchangeRateToUsd);
+            for (const toC of countries) {
+              if (!matrix[fromC.id]![toC.id]) {
+                const toRate = Number(toC.exchangeRateToUsd);
+                matrix[fromC.id]![toC.id] = {
+                  rate:
+                    fromRate > 0 ? Number((toRate / fromRate).toFixed(6)) : 1.0,
+                  isCustomOverride: false,
+                };
+              }
+            }
+          }
+
+          if (countries.length > 0) {
+            return reply.send({
+              countries: countries.map((c) => ({
+                id: c.id,
+                countryCode: c.countryCode,
+                countryName: c.countryName,
+                currencyCode: c.currencyCode,
+                currencySymbol: c.currencySymbol,
+                exchangeRateToUsd: Number(c.exchangeRateToUsd),
+              })),
+              matrix,
+            });
+          }
+        } catch (err) {
+          logger.warn(
+            { err },
+            "[FX] Matrix database read warning, using computed fallback matrix",
+          );
         }
 
-        for (const p of pairs) {
-          if (matrix[p.fromCountryId]) {
-            matrix[p.fromCountryId]![p.toCountryId] = {
-              rate: Number(p.rate),
-              isCustomOverride: p.isCustomOverride,
+        // Resilient fallback matrix computed from SEEDED_MARKET_COUNTRIES
+        const fallbackCountries = SEEDED_MARKET_COUNTRIES.map((c, i) => ({
+          id: `c-${c.countryCode.toLowerCase()}-${i}`,
+          countryCode: c.countryCode,
+          countryName: c.countryName,
+          currencyCode: c.currencyCode,
+          currencySymbol: c.currencySymbol,
+          exchangeRateToUsd: c.exchangeRateToUsd,
+        }));
+
+        const fallbackMatrix: Record<
+          string,
+          Record<string, { rate: number; isCustomOverride: boolean }>
+        > = {};
+        for (const fromC of fallbackCountries) {
+          fallbackMatrix[fromC.id] = {};
+          for (const toC of fallbackCountries) {
+            const rate =
+              fromC.exchangeRateToUsd > 0
+                ? Number(
+                    (toC.exchangeRateToUsd / fromC.exchangeRateToUsd).toFixed(
+                      6,
+                    ),
+                  )
+                : 1.0;
+            fallbackMatrix[fromC.id]![toC.id] = {
+              rate,
+              isCustomOverride: false,
             };
           }
         }
 
-        // Fill any missing with triangulated math dynamically
-        for (const fromC of countries) {
-          const fromRate = Number(fromC.exchangeRateToUsd);
-          for (const toC of countries) {
-            if (!matrix[fromC.id]![toC.id]) {
-              const toRate = Number(toC.exchangeRateToUsd);
-              matrix[fromC.id]![toC.id] = {
-                rate: fromRate > 0 ? Number((toRate / fromRate).toFixed(6)) : 1.0,
-                isCustomOverride: false,
-              };
-            }
-          }
-        }
-
-        if (countries.length > 0) {
-          return reply.send({
-            countries: countries.map((c) => ({
-              id: c.id,
-              countryCode: c.countryCode,
-              countryName: c.countryName,
-              currencyCode: c.currencyCode,
-              currencySymbol: c.currencySymbol,
-              exchangeRateToUsd: Number(c.exchangeRateToUsd),
-            })),
-            matrix,
-          });
-        }
-      } catch (err) {
-        logger.warn({ err }, '[FX] Matrix database read warning, using computed fallback matrix');
-      }
-
-      // Resilient fallback matrix computed from SEEDED_MARKET_COUNTRIES
-      const fallbackCountries = SEEDED_MARKET_COUNTRIES.map((c, i) => ({
-        id: `c-${c.countryCode.toLowerCase()}-${i}`,
-        countryCode: c.countryCode,
-        countryName: c.countryName,
-        currencyCode: c.currencyCode,
-        currencySymbol: c.currencySymbol,
-        exchangeRateToUsd: c.exchangeRateToUsd,
-      }));
-
-      const fallbackMatrix: Record<string, Record<string, { rate: number; isCustomOverride: boolean }>> = {};
-      for (const fromC of fallbackCountries) {
-        fallbackMatrix[fromC.id] = {};
-        for (const toC of fallbackCountries) {
-          const rate = fromC.exchangeRateToUsd > 0 ? Number((toC.exchangeRateToUsd / fromC.exchangeRateToUsd).toFixed(6)) : 1.0;
-          fallbackMatrix[fromC.id]![toC.id] = { rate, isCustomOverride: false };
-        }
-      }
-
-      return reply.send({
-        countries: fallbackCountries,
-        matrix: fallbackMatrix,
-      });
-    });
+        return reply.send({
+          countries: fallbackCountries,
+          matrix: fallbackMatrix,
+        });
+      },
+    );
 
     // -------------------------------------------------------------
     // 5. SET CUSTOM CONTRACTUAL PAIR OVERRIDE
     // -------------------------------------------------------------
     server.post(
-      '/fx/matrix/override',
+      "/fx/matrix/override",
       async (
         req: FastifyRequest<{
           Body: {
@@ -427,21 +472,32 @@ export class FxService {
             resetToTriangulated?: boolean;
           };
         }>,
-        reply: FastifyReply
+        reply: FastifyReply,
       ) => {
         try {
           const orgId = await getOrganizationId();
-          const { fromCountryId, toCountryId, rate, resetToTriangulated = false } = req.body || {};
+          const {
+            fromCountryId,
+            toCountryId,
+            rate,
+            resetToTriangulated = false,
+          } = req.body || {};
 
           if (!fromCountryId || !toCountryId) {
-            return reply.status(400).send({ error: 'fromCountryId and toCountryId required' });
+            return reply
+              .status(400)
+              .send({ error: "fromCountryId and toCountryId required" });
           }
 
-          const fromCountry = await prisma.marketCountry.findUnique({ where: { id: fromCountryId } });
-          const toCountry = await prisma.marketCountry.findUnique({ where: { id: toCountryId } });
+          const fromCountry = await prisma.marketCountry.findUnique({
+            where: { id: fromCountryId },
+          });
+          const toCountry = await prisma.marketCountry.findUnique({
+            where: { id: toCountryId },
+          });
 
           if (!fromCountry || !toCountry) {
-            return reply.status(404).send({ error: 'Countries not found' });
+            return reply.status(404).send({ error: "Countries not found" });
           }
 
           let finalRate = Number(rate);
@@ -450,7 +506,8 @@ export class FxService {
           if (resetToTriangulated) {
             const fromRate = Number(fromCountry.exchangeRateToUsd);
             const toRate = Number(toCountry.exchangeRateToUsd);
-            finalRate = fromRate > 0 ? Number((toRate / fromRate).toFixed(6)) : 1.0;
+            finalRate =
+              fromRate > 0 ? Number((toRate / fromRate).toFixed(6)) : 1.0;
             isOverride = false;
           }
 
@@ -480,27 +537,27 @@ export class FxService {
           });
 
           await logAudit(
-            'Trader',
-            'OVERRIDE',
-            'ExchangeRatePair',
+            "Trader",
+            "OVERRIDE",
+            "ExchangeRatePair",
             updatedPair.id,
-            `Pair rate ${fromCountry.currencyCode} -> ${toCountry.currencyCode} set to ${finalRate} (${isOverride ? 'Custom Override' : 'Triangulated'})`,
-            updatedPair.id
+            `Pair rate ${fromCountry.currencyCode} -> ${toCountry.currencyCode} set to ${finalRate} (${isOverride ? "Custom Override" : "Triangulated"})`,
+            updatedPair.id,
           );
 
           return reply.send({ success: true, pair: updatedPair });
         } catch (err) {
-          logger.error({ err }, '[FX] Failed to update pair override');
+          logger.error({ err }, "[FX] Failed to update pair override");
           return reply.status(500).send({ error: (err as Error).message });
         }
-      }
+      },
     );
 
     // -------------------------------------------------------------
     // 6. LIVE CONVERTER & SOURCING CALCULATOR
     // -------------------------------------------------------------
     server.post(
-      '/fx/convert',
+      "/fx/convert",
       async (
         req: FastifyRequest<{
           Body: {
@@ -509,11 +566,15 @@ export class FxService {
             toCurrency: string;
           };
         }>,
-        reply: FastifyReply
+        reply: FastifyReply,
       ) => {
         try {
           const orgId = await getOrganizationId();
-          const { amount = 1, fromCurrency = 'USD', toCurrency = 'USD' } = req.body || {};
+          const {
+            amount = 1,
+            fromCurrency = "USD",
+            toCurrency = "USD",
+          } = req.body || {};
 
           const cleanFrom = fromCurrency.trim().toUpperCase();
           const cleanTo = toCurrency.trim().toUpperCase();
@@ -527,7 +588,9 @@ export class FxService {
           });
 
           if (!fromCountry || !toCountry) {
-            return reply.status(404).send({ error: 'One or both currencies not found in market directory' });
+            return reply.status(404).send({
+              error: "One or both currencies not found in market directory",
+            });
           }
 
           // Check if custom override exists
@@ -549,8 +612,13 @@ export class FxService {
               : 1.0;
 
           const numAmount = Number(amount) || 0;
-          const convertedAmount = Number((numAmount * effectiveRate).toFixed(4));
-          const amountInUsd = fromRateToUsd > 0 ? Number((numAmount / fromRateToUsd).toFixed(4)) : numAmount;
+          const convertedAmount = Number(
+            (numAmount * effectiveRate).toFixed(4),
+          );
+          const amountInUsd =
+            fromRateToUsd > 0
+              ? Number((numAmount / fromRateToUsd).toFixed(4))
+              : numAmount;
 
           return reply.send({
             amount: numAmount,
@@ -567,10 +635,10 @@ export class FxService {
             },
           });
         } catch (err) {
-          logger.error({ err }, '[FX] Failed to convert currency');
+          logger.error({ err }, "[FX] Failed to convert currency");
           return reply.status(500).send({ error: (err as Error).message });
         }
-      }
+      },
     );
   }
 }

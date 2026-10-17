@@ -106,7 +106,9 @@ export const App: React.FC = () => {
         />
 
         {/* Main Content Area */}
-        <div className={`main-content ${isSidebarCollapsed ? "sidebar-collapsed" : ""}`}>
+        <div
+          className={`main-content ${isSidebarCollapsed ? "sidebar-collapsed" : ""}`}
+        >
           <Header
             currentTab={currentTab}
             theme={theme}
@@ -118,7 +120,11 @@ export const App: React.FC = () => {
             {currentTab === "reporting" && <AnalyticsModule />}
             {currentTab === "crm" && <CrmModule />}
             {currentTab === "catalogue" && <CatalogueModule />}
-            {currentTab === "sales" && <QuotesModule onNavigateToFinance={() => setCurrentTab('finance')} />}
+            {currentTab === "sales" && (
+              <QuotesModule
+                onNavigateToFinance={() => setCurrentTab("finance")}
+              />
+            )}
             {currentTab === "procurement" && <ProcurementModule />}
             {currentTab === "fulfilment" && <FulfilmentModule />}
             {currentTab === "finance" && <FinanceModule />}

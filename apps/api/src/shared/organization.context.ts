@@ -1,6 +1,6 @@
 import { getPrismaClient } from "../infrastructure/database/prisma.js";
 
-const DEFAULT_ORG_ID = '6e754289-3fcc-4315-b422-1f8758045495';
+const DEFAULT_ORG_ID = "6e754289-3fcc-4315-b422-1f8758045495";
 let cachedOrgId: string = DEFAULT_ORG_ID;
 
 export async function getOrganizationId(): Promise<string> {

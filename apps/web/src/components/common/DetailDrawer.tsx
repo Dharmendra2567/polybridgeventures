@@ -1,5 +1,5 @@
-import React, { useEffect } from 'react';
-import { X } from 'lucide-react';
+import React, { useEffect } from "react";
+import { X } from "lucide-react";
 
 export interface DetailDrawerProps {
   isOpen: boolean;
@@ -22,12 +22,12 @@ export const DetailDrawer: React.FC<DetailDrawerProps> = ({
 }) => {
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && isOpen) {
+      if (e.key === "Escape" && isOpen) {
         onClose();
       }
     };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
   }, [isOpen, onClose]);
 
   if (!isOpen) return null;
@@ -37,7 +37,9 @@ export const DetailDrawer: React.FC<DetailDrawerProps> = ({
       <div className="drawer-panel" onClick={(e) => e.stopPropagation()}>
         <div className="drawer-header">
           <div className="drawer-title-group">
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+            <div
+              style={{ display: "flex", alignItems: "center", gap: "0.6rem" }}
+            >
               <h2 className="drawer-title">{title}</h2>
               {badge}
             </div>

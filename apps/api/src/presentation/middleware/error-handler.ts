@@ -63,7 +63,8 @@ export function errorHandler(
       : 500;
 
   // 3. Keep error message transparent so issues can be diagnosed easily
-  const message = error.message || "An unexpected internal server error occurred.";
+  const message =
+    error.message || "An unexpected internal server error occurred.";
 
   const code =
     error.code && error.code.startsWith("FST_")

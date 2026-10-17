@@ -22,7 +22,11 @@ const TAB_TITLES: Record<string, string> = {
   "fx-markets": "Global Export Markets & Foreign Exchange (FX) Matrix",
 };
 
-export const Header: React.FC<HeaderProps> = ({ currentTab, theme, onToggleTheme }) => {
+export const Header: React.FC<HeaderProps> = ({
+  currentTab,
+  theme,
+  onToggleTheme,
+}) => {
   const title = TAB_TITLES[currentTab] || "Trading Operations";
 
   return (

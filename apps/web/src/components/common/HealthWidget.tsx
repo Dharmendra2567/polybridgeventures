@@ -80,7 +80,6 @@ export const HealthWidget: React.FC = () => {
             <Badge variant="warning">DB Connecting</Badge>
           )}
 
-
           <button
             onClick={fetchStatus}
             disabled={loading}
