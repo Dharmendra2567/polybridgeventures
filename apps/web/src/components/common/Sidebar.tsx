@@ -17,6 +17,7 @@ import {
   Globe,
   FileCheck,
   LucideIcon,
+  X,
 } from "lucide-react";
 
 export interface UserSession {
@@ -38,6 +39,8 @@ export interface SidebarProps {
   onLogout?: () => void;
   isCollapsed?: boolean;
   onToggleCollapse?: () => void;
+  isMobileOpen?: boolean;
+  onCloseMobile?: () => void;
 }
 
 interface NavItem {
@@ -59,6 +62,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onLogout,
   isCollapsed = false,
   onToggleCollapse,
+  isMobileOpen = false,
+  onCloseMobile,
 }) => {
   const navSections: NavSection[] = [
     {
@@ -150,11 +155,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
   };
 
   return (
-    <aside className={`sidebar ${isCollapsed ? "collapsed" : ""}`}>
+    <aside
+      className={`sidebar ${isCollapsed ? "collapsed" : ""} ${isMobileOpen ? "mobile-open" : ""}`}
+    >
       <div
         className="sidebar-header"
         style={
-          isCollapsed
+          isCollapsed && !isMobileOpen
             ? {
                 padding: "0.6rem 0.25rem",
                 display: "flex",
@@ -182,7 +189,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           <div
             className="brand-logo"
             style={
-              isCollapsed
+              isCollapsed && !isMobileOpen
                 ? { width: 30, height: 30, fontSize: "0.95rem" }
                 : undefined
             }
@@ -190,61 +197,80 @@ export const Sidebar: React.FC<SidebarProps> = ({
           >
             PV
           </div>
-          {!isCollapsed && (
+          {(!isCollapsed || isMobileOpen) && (
             <div className="brand-title">Polybridge Ventures</div>
           )}
         </div>
 
-        {onToggleCollapse && (
-          <button
-            onClick={onToggleCollapse}
-            className="sidebar-toggle-btn"
-            style={{
-              padding: "0.35rem",
-              color: "var(--text-muted)",
-            }}
-            title={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-          >
-            {isCollapsed ? (
-              <PanelLeftOpen size={16} />
-            ) : (
-              <PanelLeftClose size={17} />
-            )}
-          </button>
-        )}
+        <div style={{ display: "flex", alignItems: "center", gap: "0.25rem" }}>
+          {onToggleCollapse && (
+            <button
+              onClick={onToggleCollapse}
+              className="sidebar-toggle-btn desktop-only"
+              style={{
+                padding: "0.35rem",
+                color: "var(--text-muted)",
+              }}
+              title={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+            >
+              {isCollapsed ? (
+                <PanelLeftOpen size={16} />
+              ) : (
+                <PanelLeftClose size={17} />
+              )}
+            </button>
+          )}
+
+          {onCloseMobile && (
+            <button
+              onClick={onCloseMobile}
+              className="mobile-sidebar-close-btn mobile-only"
+              aria-label="Close navigation"
+              title="Close navigation"
+            >
+              <X size={18} />
+            </button>
+          )}
+        </div>
       </div>
 
       <div
         className="sidebar-nav"
         style={
-          isCollapsed ? { padding: "1rem 0.4rem", gap: "1rem" } : undefined
+          isCollapsed && !isMobileOpen
+            ? { padding: "1rem 0.4rem", gap: "1rem" }
+            : undefined
         }
       >
         {navSections.map((section) => (
           <div key={section.title} className="nav-group">
-            {!isCollapsed && (
+            {(!isCollapsed || isMobileOpen) && (
               <div className="nav-group-title">{section.title}</div>
             )}
             {section.items.map((item) => {
               const Icon = item.icon;
               const isActive = currentTab === item.id;
+              const showExpanded = !isCollapsed || isMobileOpen;
               return (
                 <button
                   key={item.id}
-                  onClick={() => onSelectTab(item.id)}
+                  onClick={() => {
+                    onSelectTab(item.id);
+                    if (onCloseMobile) onCloseMobile();
+                  }}
                   className={`nav-item ${isActive ? "active" : ""}`}
                   style={{
                     width: "100%",
-                    textAlign: isCollapsed ? "center" : "left",
-                    justifyContent: isCollapsed ? "center" : "flex-start",
-                    padding: isCollapsed ? "0.65rem 0" : "0.65rem 0.75rem",
+                    textAlign: showExpanded ? "left" : "center",
+                    justifyContent: showExpanded ? "flex-start" : "center",
+                    padding: showExpanded ? "0.65rem 0.75rem" : "0.65rem 0",
                     background: "none",
                   }}
-                  title={isCollapsed ? item.label : undefined}
+                  title={!showExpanded ? item.label : undefined}
                 >
                   <Icon size={18} />
-                  {!isCollapsed && <span>{item.label}</span>}
-                  {!isCollapsed && item.badge && (
+                  {showExpanded && <span>{item.label}</span>}
+                  {showExpanded && item.badge && (
                     <span className="nav-badge">{item.badge}</span>
                   )}
                 </button>
@@ -256,9 +282,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
       <div
         className="sidebar-footer"
-        style={isCollapsed ? { padding: "0.75rem 0.25rem" } : undefined}
+        style={
+          isCollapsed && !isMobileOpen
+            ? { padding: "0.75rem 0.25rem" }
+            : undefined
+        }
       >
-        {isCollapsed ? (
+        {isCollapsed && !isMobileOpen ? (
           <div
             style={{
               display: "flex",

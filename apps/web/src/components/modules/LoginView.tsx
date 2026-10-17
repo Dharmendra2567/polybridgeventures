@@ -130,39 +130,10 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess }) => {
   };
 
   return (
-    <div
-      style={{
-        minHeight: "100vh",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        padding: "2rem",
-        background:
-          "radial-gradient(circle at 50% 0%, rgba(99, 102, 241, 0.15) 0%, rgba(11, 15, 25, 0.98) 100%)",
-      }}
-    >
-      <div
-        style={{
-          maxWidth: "960px",
-          width: "100%",
-          display: "grid",
-          gridTemplateColumns: "1.1fr 0.9fr",
-          gap: "2.5rem",
-          background: "var(--bg-secondary)",
-          border: "1px solid var(--border-medium)",
-          borderRadius: "var(--radius-xl)",
-          padding: "3rem",
-          boxShadow: "var(--shadow-xl)",
-        }}
-      >
-        {/* Left Side: Business & Credentials */}
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            justifyContent: "space-between",
-          }}
-        >
+    <div className="login-view-wrapper">
+      <div className="login-card-container">
+        {/* Left Side / Top on Mobile: Business & Credentials */}
+        <div className="login-brand-section">
           <div>
             <div
               style={{
@@ -334,17 +305,7 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess }) => {
         </div>
 
         {/* Right Side: Secure Login Form */}
-        <div
-          style={{
-            background: "var(--bg-tertiary)",
-            border: "1px solid var(--border-medium)",
-            borderRadius: "var(--radius-lg)",
-            padding: "2.5rem",
-            display: "flex",
-            flexDirection: "column",
-            justifyContent: "center",
-          }}
-        >
+        <div className="login-form-section">
           <div style={{ marginBottom: "1.75rem" }}>
             <h2
               style={{

@@ -42,22 +42,19 @@ export const HealthWidget: React.FC = () => {
   }, []);
 
   return (
-    <div className="card" style={{ padding: "1rem 1.25rem" }}>
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-        }}
-      >
-        <div style={{ display: "flex", alignItems: "center", gap: "0.65rem" }}>
+    <div
+      className="card health-widget-card"
+      style={{ padding: "1rem 1.25rem" }}
+    >
+      <div className="health-widget-bar">
+        <div className="health-widget-title">
           <Activity size={18} color="var(--primary-light)" />
           <span style={{ fontSize: "0.875rem", fontWeight: 600 }}>
             API Engine & DB Status
           </span>
         </div>
 
-        <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+        <div className="health-widget-badges">
           {loading && (
             <span style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>
               Checking...

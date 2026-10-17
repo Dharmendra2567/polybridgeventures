@@ -21,6 +21,8 @@ export const App: React.FC = () => {
   const [currentUser, setCurrentUser] = useState<UserSession | null>(null);
   const [currentTab, setCurrentTab] = useState<string>("dashboard");
   const [theme, setTheme] = useState<"dark" | "light">("dark");
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] =
+    useState<boolean>(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(() => {
     try {
       return localStorage.getItem("pbv_sidebar_collapsed") === "true";
@@ -95,7 +97,16 @@ export const App: React.FC = () => {
   return (
     <ErrorBoundary>
       <div className="app-container">
-        {/* Left Fixed Navigation Sidebar */}
+        {/* Mobile Backdrop Overlay */}
+        {isMobileSidebarOpen && (
+          <div
+            className="mobile-sidebar-backdrop"
+            onClick={() => setIsMobileSidebarOpen(false)}
+            aria-hidden="true"
+          />
+        )}
+
+        {/* Navigation Sidebar (Desktop persistent + Mobile off-canvas drawer) */}
         <Sidebar
           currentTab={currentTab}
           onSelectTab={setCurrentTab}
@@ -103,6 +114,8 @@ export const App: React.FC = () => {
           onLogout={handleLogout}
           isCollapsed={isSidebarCollapsed}
           onToggleCollapse={handleToggleSidebar}
+          isMobileOpen={isMobileSidebarOpen}
+          onCloseMobile={() => setIsMobileSidebarOpen(false)}
         />
 
         {/* Main Content Area */}
@@ -113,6 +126,7 @@ export const App: React.FC = () => {
             currentTab={currentTab}
             theme={theme}
             onToggleTheme={toggleTheme}
+            onOpenMobileMenu={() => setIsMobileSidebarOpen(true)}
           />
 
           <main className="content-body">
