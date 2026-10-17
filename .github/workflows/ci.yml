@@ -1,0 +1,64 @@
+name: CI Pipeline
+
+on:
+  push:
+    branches: [main, master, develop]
+  pull_request:
+    branches: [main, master, develop]
+
+jobs:
+  verify:
+    name: Verify Codebase (Typecheck, Lint, Test, Build)
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: polybridge_dev
+          POSTGRES_PASSWORD: polybridge_password
+          POSTGRES_DB: polybridge_trading_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 12.11.2
+
+      - name: Install Dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Format Check
+        run: pnpm run format:check
+
+      - name: TypeScript Check
+        run: pnpm run typecheck
+
+      - name: Linting
+        run: pnpm run lint
+
+      - name: Run Test Suites
+        run: pnpm run test
+        env:
+          NODE_ENV: test
+          DATABASE_URL: postgresql://polybridge_dev:polybridge_password@localhost:5432/polybridge_trading_test?schema=public
+          COOKIE_SECRET: test-cookie-secret-string-must-be-at-least-32-chars-long
+          CORS_ORIGIN: http://localhost:5173
+
+      - name: Build Packages & Applications
+        run: pnpm run build

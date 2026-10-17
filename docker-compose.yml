@@ -1,0 +1,22 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: polybridge-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: polybridge_dev
+      POSTGRES_PASSWORD: polybridge_password
+      POSTGRES_DB: polybridge_trading_dev
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U polybridge_dev -d polybridge_trading_dev"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  pgdata:
+    driver: local
