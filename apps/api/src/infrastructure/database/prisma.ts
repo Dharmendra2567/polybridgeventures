@@ -1,11 +1,13 @@
 import { PrismaClient } from "../../generated/client/index.js";
 import { logger } from "../logging/logger.js";
 
-let prismaInstance: PrismaClient | null = null;
+const globalForPrisma = globalThis as unknown as {
+  prismaInstance: PrismaClient | undefined;
+};
 
 export function getPrismaClient(): PrismaClient {
-  if (!prismaInstance) {
-    prismaInstance = new PrismaClient({
+  if (!globalForPrisma.prismaInstance) {
+    globalForPrisma.prismaInstance = new PrismaClient({
       log: [
         { emit: "event", level: "query" },
         { emit: "event", level: "error" },
@@ -14,18 +16,18 @@ export function getPrismaClient(): PrismaClient {
       ],
     });
 
-    prismaInstance.$on("error" as never, (e: unknown) => {
+    globalForPrisma.prismaInstance.$on("error" as never, (e: unknown) => {
       logger.error({ err: e }, "[Database] Prisma query error encountered");
     });
   }
 
-  return prismaInstance;
+  return globalForPrisma.prismaInstance;
 }
 
 export async function disconnectPrisma(): Promise<void> {
-  if (prismaInstance) {
-    await prismaInstance.$disconnect();
-    prismaInstance = null;
+  if (globalForPrisma.prismaInstance) {
+    await globalForPrisma.prismaInstance.$disconnect();
+    globalForPrisma.prismaInstance = undefined;
     logger.info("[Database] Prisma client successfully disconnected");
   }
 }

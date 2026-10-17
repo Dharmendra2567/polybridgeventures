@@ -44,8 +44,8 @@ export async function buildServer(
   // 3. Strict CORS
   await server.register(cors, {
     origin: (origin, cb) => {
-      // Allow requests with no origin (e.g. mobile apps, curl) in non-production
-      if (!origin && config.NODE_ENV !== "production") {
+      // Allow requests with no origin (e.g. direct navigation, health check, curl, server-to-server)
+      if (!origin) {
         return cb(null, true);
       }
       if (
